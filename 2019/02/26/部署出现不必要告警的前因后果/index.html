@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  
+
+  
+  <title>部署出现不必要告警的前因后果 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="很多大公司都是可以利用自己的中间件监控自己应用的性能情况，异常记录和业务成功率等等，如果出现超出预想的监控值，可以通过手机短信，或是其他途径，例如钉钉，给出告警。 现在的问题是，在业务进行迭代的过程里，需要对应用进行重新部署，在重新部署的过程中，容易导致应用不可用，当然，系统的可用性不可能在应用部署的时候被搞垮，在线上机器部署的时候是分批部署的，即使一批机器在部署，其他批次的机器也能提供服务。在阿">
+<meta property="og:type" content="article">
+<meta property="og:title" content="部署出现不必要告警的前因后果">
+<meta property="og:url" content="http://yoursite.com/2019/02/26/部署出现不必要告警的前因后果/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="很多大公司都是可以利用自己的中间件监控自己应用的性能情况，异常记录和业务成功率等等，如果出现超出预想的监控值，可以通过手机短信，或是其他途径，例如钉钉，给出告警。 现在的问题是，在业务进行迭代的过程里，需要对应用进行重新部署，在重新部署的过程中，容易导致应用不可用，当然，系统的可用性不可能在应用部署的时候被搞垮，在线上机器部署的时候是分批部署的，即使一批机器在部署，其他批次的机器也能提供服务。在阿">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-02-26T12:41:04.728Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="部署出现不必要告警的前因后果">
+<meta name="twitter:description" content="很多大公司都是可以利用自己的中间件监控自己应用的性能情况，异常记录和业务成功率等等，如果出现超出预想的监控值，可以通过手机短信，或是其他途径，例如钉钉，给出告警。 现在的问题是，在业务进行迭代的过程里，需要对应用进行重新部署，在重新部署的过程中，容易导致应用不可用，当然，系统的可用性不可能在应用部署的时候被搞垮，在线上机器部署的时候是分批部署的，即使一批机器在部署，其他批次的机器也能提供服务。在阿">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-部署出现不必要告警的前因后果" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2019/02/26/部署出现不必要告警的前因后果/" class="article-date">
+  <time datetime="2019-02-26T12:37:19.000Z" itemprop="datePublished">2019-02-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      部署出现不必要告警的前因后果
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>很多大公司都是可以利用自己的中间件监控自己应用的性能情况，异常记录和业务成功率等等，如果出现超出预想的监控值，可以通过手机短信，或是其他途径，例如钉钉，给出告警。</p>
+<p>现在的问题是，在业务进行迭代的过程里，需要对应用进行重新部署，在重新部署的过程中，容易导致应用不可用，当然，系统的可用性不可能在应用部署的时候被搞垮，在线上机器部署的时候是分批部署的，即使一批机器在部署，其他批次的机器也能提供服务。在阿里工作过的同学都知道，阿里内部的环境复杂性，为了保障线上稳定，需要对多个环境进行验证，一般来说有这几种，日常，预发，灰度，正式。无关紧要的我就不扯了，我们监控的一般是真实环境，而不是测试环境，在这几种环境中，灰度环境和正式环境就是真实的环境，只是灰度环境的机器比较少，因此，即使是分批部署保证可用性，但在灰度机器比较少的情况下，跟正式环境相比，如果其中有一台机器出问题，业务成功率会比正式环境低不少，因此很容易导致告警。</p>
+<p>那么这种告警有必要吗？这个跟系统应用有关，具体问题具体分析，因为我们的应用用到了阿里内部的DTS（分布式任务调度系统），DTS客户端启动之后会每隔一段时间进行一次任务调度，那么这里就容易出问题了，如果应用在部署的时候，进行任务调度会怎么样，在部署的时候一些被用到的bean还没有被加载，这个时候就会报错，导致成功率大大减低，从而会造成不必要的告警。<br><a id="more"></a></p>
+<p>出现这个问题的原因其实在于DTS客户端的启动时机比较靠前，在别的bean还没有加载完成时就已经启动了，解决这个问题的关键在于让DTS客户端的启动往后靠。首先看看DTS客户端这个bean的配置，原先这个bean使用了初始化方法，即在加载这个bean之后立即调用初始化方法，监听相应的端口，往DTS服务端发送心跳检测，表示我这台机器已经可以进行任务调度了，DTS服务端收到之后，就可以往这台机器进行任务调度了。</p>
+<p>经过分析之后，很明显，我们需要关注两个时间点，一个是在部署的时候，Spring容器销毁时，还有Spring容器加载bean完成后，在这两个时间点要保证两个事情，一个是在Spring容器销毁的时候，DTS客户端是第一个被销毁的，一个是在Spring容器加载bean完成后，DTS客户端再启动。</p>
+<p>Spring提供以上两种Event，分别是ContextRefreshedEvent, ContextClosedEvent，ContextRefreshedEvent会在全部bean加载完成后触发，ContextClosedEvent会在容器内的bean销毁前触发。具体实现思路可以参考如下：</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2019/02/26/部署出现不必要告警的前因后果/" data-id="cjslrboyv0001v107ut5mc7wv" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2019/02/26/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Hello World</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/02/26/部署出现不必要告警的前因后果/">部署出现不必要告警的前因后果</a>
+          </li>
+        
+          <li>
+            <a href="/2019/02/26/hello-world/">Hello World</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2019 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+  </div>
+</body>
+</html>
