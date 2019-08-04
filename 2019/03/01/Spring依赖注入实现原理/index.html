@@ -104,7 +104,7 @@
 <meta property="og:site_name" content="K神的博客">
 <meta property="og:description" content="实现猜想Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从bean">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-02-28T18:36:38.379Z">
+<meta property="og:updated_time" content="2019-08-04T14:30:33.175Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Spring依赖注入实现原理">
 <meta name="twitter:description" content="实现猜想Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从bean">
@@ -344,12 +344,24 @@
                 
               
 
-              <time title="创建时间：2019-03-01 02:31:54 / 修改时间：02:36:38" itemprop="dateCreated datePublished" datetime="2019-03-01T02:31:54+08:00">2019-03-01</time>
+              <time title="创建时间：2019-03-01 02:31:54" itemprop="dateCreated datePublished" datetime="2019-03-01T02:31:54+08:00">2019-03-01</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-08-04 22:30:33" itemprop="dateModified" datetime="2019-08-04T22:30:33+08:00">2019-08-04</time>
               
             
           </span>
@@ -384,7 +396,6 @@
 
       
         <h2 id="实现猜想"><a href="#实现猜想" class="headerlink" title="实现猜想"></a>实现猜想</h2><p>Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从beanFactory中找出合适的bean注入。这是基本的思路，下面我将采用自顶向下的思路来对Spring依赖注入的源码进行剖析。</p>
-<a id="more"></a>
 <h2 id="AbstractBeanFactory"><a href="#AbstractBeanFactory" class="headerlink" title="AbstractBeanFactory"></a>AbstractBeanFactory</h2><p>在这个类中定义了获取Bean的方法</p>
 <pre><code class="java">/**
 * Return an instance, which may be shared or independent, of the specified bean.
