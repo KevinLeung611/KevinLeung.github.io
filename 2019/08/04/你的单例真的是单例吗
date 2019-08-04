@@ -96,21 +96,22 @@
 <link href="/css/code-prettify/prettify.css" type="text/css" rel="stylesheet">
 
 
-  <meta name="description" content="你的单例真的是单例吗？对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.k">
+  <meta name="description" content="你的单例真的是单例吗？对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。">
+<meta name="keywords" content="单例模式">
 <meta property="og:type" content="article">
-<meta property="og:title" content="K神的博客">
+<meta property="og:title" content="你的单例真的是单例吗？">
 <meta property="og:url" content="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗">
 <meta property="og:site_name" content="K神的博客">
-<meta property="og:description" content="你的单例真的是单例吗？对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.k">
+<meta property="og:description" content="你的单例真的是单例吗？对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https://kevinleung611.github.io/Users/kevin/Library/Application%20Support/typora-user-images/image-20190804212035702.png">
-<meta property="og:image" content="https://kevinleung611.github.io/Users/kevin/Library/Application%20Support/typora-user-images/image-20190804213947754.png">
-<meta property="og:image" content="https://kevinleung611.github.io/Users/kevin/Library/Application%20Support/typora-user-images/image-20190804214537510.png">
-<meta property="og:updated_time" content="2019-08-04T13:50:55.349Z">
+<meta property="og:image" content="https://kevinleung611.github.io/2019/08/img/image-20190804212035702.png">
+<meta property="og:image" content="https://kevinleung611.github.io/2019/08/img/image-20190804213947754.png">
+<meta property="og:image" content="https://kevinleung611.github.io/2019/08/img/image-20190804214537510.png">
+<meta property="og:updated_time" content="2019-08-04T14:05:56.163Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="K神的博客">
-<meta name="twitter:description" content="你的单例真的是单例吗？对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.k">
-<meta name="twitter:image" content="https://kevinleung611.github.io/Users/kevin/Library/Application%20Support/typora-user-images/image-20190804212035702.png">
+<meta name="twitter:title" content="你的单例真的是单例吗？">
+<meta name="twitter:description" content="你的单例真的是单例吗？对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。">
+<meta name="twitter:image" content="https://kevinleung611.github.io/2019/08/img/image-20190804212035702.png">
 
 
 
@@ -127,7 +128,7 @@
   };
 </script>
 
-  <title> | K神的博客</title>
+  <title>你的单例真的是单例吗？ | K神的博客</title>
   
 
 
@@ -321,7 +322,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">
+          <h1 class="post-title" itemprop="name headline">你的单例真的是单例吗？
 
               
             
@@ -347,7 +348,7 @@
                 
               
 
-              <time title="创建时间：2019-08-04 17:30:32 / 修改时间：21:50:55" itemprop="dateCreated datePublished" datetime="2019-08-04T17:30:32+08:00">2019-08-04</time>
+              <time title="创建时间：2019-08-04 00:00:00 / 修改时间：22:05:56" itemprop="dateCreated datePublished" datetime="2019-08-04T00:00:00+08:00">2019-08-04</time>
             
 
             
@@ -388,6 +389,7 @@
       
         <h1 id="你的单例真的是单例吗？"><a href="#你的单例真的是单例吗？" class="headerlink" title="你的单例真的是单例吗？"></a>你的单例真的是单例吗？</h1><p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
 <p>单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。</p>
+<a id="more"></a>
 <p>下面看饿汉式的单例模式：</p>
 <pre><code class="java">package com.kevinleung.demo.single;
 
@@ -439,7 +441,7 @@ public class HungrySingleton implements Serializable {
 <p>对象在反序列化的时候出乎了我们的意料，对象发生了变化，这不是我们想看到的结果。那么如何解决这个问题呢？</p>
 <p>有两种解决方案，一种是实现 readResolve 方法，另一种是通过枚举的方式实现单例。</p>
 <h3 id="解决方案一"><a href="#解决方案一" class="headerlink" title="解决方案一"></a>解决方案一</h3><p>看 ObjectOutputStream 的 readObject 方法，可以看出，如果实例方法中有 readResovle 方法，先调用 readObject 方法，返回 readResovle 方法返回的实例。</p>
-<p><img src="/Users/kevin/Library/Application Support/typora-user-images/image-20190804212035702.png" alt="image-20190804212035702"></p>
+<p><img src="../img/image-20190804212035702.png" alt="image-20190804212035702"></p>
 <pre><code class="java">package com.kevinleung.demo.single;
 
 import java.io.Serializable;
@@ -520,9 +522,9 @@ public enum EnumSingleton {
 <p>true</p>
 </blockquote>
 <p>枚举之所以能够解决单例模式反序列化问题的原因是，反序列化的时候，枚举的实现方式和其他类型是不一样的。</p>
-<p><img src="/Users/kevin/Library/Application Support/typora-user-images/image-20190804213947754.png" alt="image-20190804213947754"></p>
+<p><img src="../img/image-20190804213947754.png" alt="image-20190804213947754"></p>
 <p>具体可看下面源码：</p>
-<p><img src="/Users/kevin/Library/Application Support/typora-user-images/image-20190804214537510.png" alt="image-20190804214537510"></p>
+<p><img src="../img/image-20190804214537510.png" alt="image-20190804214537510"></p>
 <p>在枚举反序列化的时候，调用了 Enum.valueOf 方法，这个方法会从枚举类中保存的 map 中获取枚举实例。也就是说，枚举在每次反序列化的时候，都会从公有的枚举 map 中获取对应 name 的实例。所以，每次反序列化后的都是同一个对象。</p>
 
       
@@ -562,7 +564,7 @@ public enum EnumSingleton {
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
     
-    <a href="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗?/">https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗?/</a>
+    <a href="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗?/" title="你的单例真的是单例吗？">https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗?/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
@@ -572,6 +574,12 @@ public enum EnumSingleton {
     
 
     <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/单例模式/" rel="tag"># 单例模式</a>
+          
+        </div>
       
 
       
@@ -688,7 +696,9 @@ public enum EnumSingleton {
                     
                       
                     
-                    <span class="site-state-item-count">6</span>
+                      
+                    
+                    <span class="site-state-item-count">7</span>
                     <span class="site-state-item-name">标签</span>
                   
                 </div>

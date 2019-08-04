@@ -317,7 +317,7 @@
           <h1 class="post-title" itemprop="name headline">
                 
                 
-                <a href="/2019/08/04/你的单例真的是单例吗?/" class="post-title-link" itemprop="url">未命名</a>
+                <a href="/2019/08/04/你的单例真的是单例吗?/" class="post-title-link" itemprop="url">你的单例真的是单例吗？</a>
               
             
           </h1>
@@ -342,7 +342,7 @@
                 
               
 
-              <time title="创建时间：2019-08-04 17:30:32 / 修改时间：21:50:55" itemprop="dateCreated datePublished" datetime="2019-08-04T17:30:32+08:00">2019-08-04</time>
+              <time title="创建时间：2019-08-04 00:00:00 / 修改时间：22:05:56" itemprop="dateCreated datePublished" datetime="2019-08-04T00:00:00+08:00">2019-08-04</time>
             
 
             
@@ -382,147 +382,17 @@
 
       
         
-          
-            <h1 id="你的单例真的是单例吗？"><a href="#你的单例真的是单例吗？" class="headerlink" title="你的单例真的是单例吗？"></a>你的单例真的是单例吗？</h1><p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
+          <h1 id="你的单例真的是单例吗？"><a href="#你的单例真的是单例吗？" class="headerlink" title="你的单例真的是单例吗？"></a>你的单例真的是单例吗？</h1><p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
 <p>单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。</p>
-<p>下面看饿汉式的单例模式：</p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-import java.io.Serializable;
-
-/**
- * @author Kevin Leung
- */
-public class HungrySingleton implements Serializable {
-
-    private static final long serialVersionUID = -8180761491879455465L;
-
-    private static final HungrySingleton SINGLETON = new HungrySingleton();
-
-    private HungrySingleton() {
-
-    }
-
-    public static HungrySingleton getInstance() {
-        return SINGLETON;
-    }
-
-}
-</code></pre>
-<p>这时饿汉式标准的实现方式。我们知道，每次 getInstance 的时候都会返回同一个实例。但是，需要注意的时候在实例反序列化式的情况，对象在反序列化的时候，默认的做法会重新构造一个对象。看下面的示例：</p>
-<pre><code class="java">private static void hungrySingleton() throws IOException, ClassNotFoundException {
-  HungrySingleton hungrySingleton = HungrySingleton.getInstance();
-
-  HungrySingleton hungrySingleton1 = HungrySingleton.getInstance();
-
-  System.out.println(hungrySingleton == hungrySingleton1);
-
-  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;hungrySingleton.data&quot;));
-
-  os.writeObject(hungrySingleton1);
-
-  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;hungrySingleton.data&quot;));
-
-  hungrySingleton1 = (HungrySingleton) is.readObject();
-
-  System.out.println(hungrySingleton == hungrySingleton1);
-}
-</code></pre>
-<p>程序执行的结果为：</p>
-<blockquote>
-<p>true</p>
-<p>false</p>
-</blockquote>
-<p>对象在反序列化的时候出乎了我们的意料，对象发生了变化，这不是我们想看到的结果。那么如何解决这个问题呢？</p>
-<p>有两种解决方案，一种是实现 readResolve 方法，另一种是通过枚举的方式实现单例。</p>
-<h3 id="解决方案一"><a href="#解决方案一" class="headerlink" title="解决方案一"></a>解决方案一</h3><p>看 ObjectOutputStream 的 readObject 方法，可以看出，如果实例方法中有 readResovle 方法，先调用 readObject 方法，返回 readResovle 方法返回的实例。</p>
-<p><img src="/Users/kevin/Library/Application Support/typora-user-images/image-20190804212035702.png" alt="image-20190804212035702"></p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-import java.io.Serializable;
-
-/**
- * @author Kevin Leung
- */
-public class HungrySingleton implements Serializable {
-
-    private static final long serialVersionUID = -8180761491879455465L;
-
-    private static final HungrySingleton SINGLETON = new HungrySingleton();
-
-    private HungrySingleton() {
-
-    }
-
-    public static HungrySingleton getInstance() {
-        return SINGLETON;
-    }
-
-    private Object readResolve() {
-        return SINGLETON;
-    }
-
-}
-</code></pre>
-<p>看加上 readResovle 方法后效果如何。</p>
-<blockquote>
-<p>true</p>
-<p>true</p>
-</blockquote>
-<h3 id="解决方案二"><a href="#解决方案二" class="headerlink" title="解决方案二"></a>解决方案二</h3><p>使用枚举的方式解决反序列化的问题。</p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-/**
- * @author Kevin Leung
- */
-public enum EnumSingleton {
-    /**
-     * 单例
-     */
-    INSTANCE;
-
-    private String field;
-
-    public void setField(String field) {
-        this.field = field;
-    }
-
-    public String getField() {
-        return field;
-    }
-
-}
-</code></pre>
-<pre><code class="java">private static void enumSingleton() throws IOException, ClassNotFoundException {
-  EnumSingleton enumSingleton = EnumSingleton.INSTANCE;
-
-  EnumSingleton enumSingleton1 = EnumSingleton.INSTANCE;
-
-  System.out.println(enumSingleton == enumSingleton1);
-
-  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;enumSingleton.data&quot;));
-
-  os.writeObject(enumSingleton1);
-
-  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;enumSingleton.data&quot;));
-
-  enumSingleton1 = (EnumSingleton) is.readObject();
-
-  System.out.println(enumSingleton == enumSingleton1);
-}
-</code></pre>
-<p>输出结果为</p>
-<blockquote>
-<p>true</p>
-<p>true</p>
-</blockquote>
-<p>枚举之所以能够解决单例模式反序列化问题的原因是，反序列化的时候，枚举的实现方式和其他类型是不一样的。</p>
-<p><img src="/Users/kevin/Library/Application Support/typora-user-images/image-20190804213947754.png" alt="image-20190804213947754"></p>
-<p>具体可看下面源码：</p>
-<p><img src="/Users/kevin/Library/Application Support/typora-user-images/image-20190804214537510.png" alt="image-20190804214537510"></p>
-<p>在枚举反序列化的时候，调用了 Enum.valueOf 方法，这个方法会从枚举类中保存的 map 中获取枚举实例。也就是说，枚举在每次反序列化的时候，都会从公有的枚举 map 中获取对应 name 的实例。所以，每次反序列化后的都是同一个对象。</p>
-
+          <!--noindex-->
           
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/08/04/你的单例真的是单例吗?/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          
+          <!--/noindex-->
         
       
     </div>
@@ -1257,7 +1127,9 @@ public enum EnumSingleton {
                     
                       
                     
-                    <span class="site-state-item-count">6</span>
+                      
+                    
+                    <span class="site-state-item-count">7</span>
                     <span class="site-state-item-name">标签</span>
                   
                 </div>
