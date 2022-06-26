@@ -150,7 +150,7 @@ public PropertyValues postProcessPropertyValues(
     <title>切换Brew软件源</title>
     <url>/2022/06/26/Untitled/</url>
     <content><![CDATA[<h1 id="切换Brew软件源"><a href="#切换Brew软件源" class="headerlink" title="切换Brew软件源"></a>切换Brew软件源</h1><p>Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。</p>
-<p><code>Homebrew</code> 主要有四个部分组成: <code>brew</code>、<code>homebrew-core</code> 、<code>homebrew-bottles</code>、<code>homebrew-cask</code>。</p>
+<p><em>Homebrew</em> 主要有四个部分组成: <em>brew</em>、<em>homebrew-core</em> 、<em>homebrew-bottles</em>、<em>homebrew-cask</em>。</p>
 <table>
 <thead>
 <tr>
