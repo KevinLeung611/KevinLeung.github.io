@@ -321,63 +321,6 @@ chkconfig mysqld on
       </tags>
   </entry>
   <entry>
-    <title>使用markdown画流程图</title>
-    <url>/2019/03/10/%E4%BD%BF%E7%94%A8markdown%E7%94%BB%E6%B5%81%E7%A8%8B%E5%9B%BE/</url>
-    <content><![CDATA[<p>市面上有很多画流程图的软件，比如<a href="https://www.processon.com" target="_blank" rel="noopener">ProcessOn</a>, <a href="https://www.visual-paradigm.com/" target="_blank" rel="noopener">VisualParadigm</a>，这些软件都可以非常直观快速的构建一个流程图，但常常需要打开一个网页或一个软件而不够便捷，如果是一些比较复杂的流程描述我会使用以上两个软件，以上的两个软件都是通过图形拖拽的方式创建流程图，markdown提供一种文本描述的方式来创建流程图，这样不需要离开编辑的界面即可完成一个流程图，岂不妙哉？</p>
-<p>使用markdown来完成流程图需要注意编辑器支不支持画流程图，我使用的是typora是支持画流程图的，如果大家在自己的编辑器上画不出流程图，请查阅该编辑器的特性是否支持流程图。</p>
-<p>其实流程图的创建是基于flowchart.js的，编辑器是否能够支持画流程图本质上指的是否支持flowchart.js。</p>
-<h2 id="流程图的关键节点"><a href="#流程图的关键节点" class="headerlink" title="流程图的关键节点"></a>流程图的关键节点</h2><h3 id="1-开始节点"><a href="#1-开始节点" class="headerlink" title="1. 开始节点"></a>1. 开始节点</h3><p>开始节点表示流程的开始，每个算法流程都有且仅有一个入口，使用圆角矩形表示，在markdown中使用<strong>start</strong>关键字表示。</p>
-<h3 id="2-结束节点"><a href="#2-结束节点" class="headerlink" title="2. 结束节点"></a>2. 结束节点</h3><p>结束节点表示流程的结束，每个算法流程都需要指定结束节点，使用圆角矩形表示，在markdown中使用<strong>end</strong>关键字表示。</p>
-<h3 id="3-判断节点"><a href="#3-判断节点" class="headerlink" title="3. 判断节点"></a>3. 判断节点</h3><p>判断节点用于分支结构，表示流程中的逻辑判断，有两个出口，[yes] or [no]，使用棱形表示，在markdown中使用<strong>condition</strong>关键字表示。</p>
-<h3 id="4-操作节点"><a href="#4-操作节点" class="headerlink" title="4. 操作节点"></a>4. 操作节点</h3><p>操作节点的操作对象主要是数据，数据的变更和声明等等，使用直角矩形表示，在mardkwon中使用<strong>operation</strong>关键字表示。</p>
-<h3 id="5-输入输出节点"><a href="#5-输入输出节点" class="headerlink" title="5. 输入输出节点"></a>5. 输入输出节点</h3><p>数据的输入和输出都使用平行四边形表示，在markdown中使用<strong>inputoutput</strong>关键字表示。</p>
-<h2 id="在markdown如何嵌入流程图"><a href="#在markdown如何嵌入流程图" class="headerlink" title="在markdown如何嵌入流程图"></a>在markdown如何嵌入流程图</h2><p>在markdown中嵌入流程图和在markdown中嵌入代码块是一样的，如下嵌入一段java代码：</p>
-<blockquote>
-<p>``` java</p>
-<p>// some codes here.</p>
-<p>```</p>
-</blockquote>
-<p>同上，要嵌入流程图可以像这样：</p>
-<blockquote>
-<p>``` flow</p>
-<p>// describe your flowchart</p>
-<p>```</p>
-</blockquote>
-<h2 id="实战"><a href="#实战" class="headerlink" title="实战"></a>实战</h2><p>使用流程图描述使用水壶烧水的过程：</p>
-<pre><code>st=&gt;start: 开始
-e=&gt;end: 结束
-io1=&gt;inputoutput: 输入水量
-con1=&gt;condition: 校验水量是否通过
-op1=&gt;operation: 烧水并等待
-io2=&gt;inputoutput: 提示错误
-st-&gt;io1-&gt;con1
-con1(yes)-&gt;op1
-con1(no)-&gt;io2(right)-&gt;io1
-op1-&gt;e
-</code></pre><div id="flowchart-0" class="flow-chart"></div>
-
-<p>大家看到的“st=&gt;start: 开始”这类的语法，表示定义一个标识符，类似编程语言里的变量定义，具体的格式是这样的：</p>
-<blockquote>
-<p>标识符=&gt;关键字: 描述</p>
-</blockquote>
-<p>关键字是上面提到的几种流程图关键字，start, end, operation, condition, inputoutput, 我只是提了几种常用的，如何不符合读者的需求，各位可以上网自行查阅其他的图形使用的关键字。</p>
-<p>所有的标识符使用“-&gt;”连接起来，到此流程图就画出来了。连接的时候还可以指定连接位置，比如io2我使用了io2(right)，表示从右边发起连接。</p>
-<p><script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.2.7/raphael.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/flowchart/1.6.5/flowchart.min.js"></script><textarea id="flowchart-0-code" style="display: none">st=>start: 开始
-e=>end: 结束
-io1=>inputoutput: 输入水量
-con1=>condition: 校验水量是否通过
-op1=>operation: 烧水并等待
-io2=>inputoutput: 提示错误
-st->io1->con1
-con1(yes)->op1
-con1(no)->io2(right)->io1
-op1->e</textarea><textarea id="flowchart-0-options" style="display: none">{"scale":1,"line-width":2,"line-length":50,"text-margin":10,"font-size":12}</textarea><script>  var code = document.getElementById("flowchart-0-code").value;  var options = JSON.parse(decodeURIComponent(document.getElementById("flowchart-0-options").value));  var diagram = flowchart.parse(code);  diagram.drawSVG("flowchart-0", options);</script></p>
-]]></content>
-      <tags>
-        <tag>funny</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Spring依赖注入实现原理</title>
     <url>/2019/03/01/Spring%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</url>
     <content><![CDATA[<h2 id="实现猜想"><a href="#实现猜想" class="headerlink" title="实现猜想"></a>实现猜想</h2><p>Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从beanFactory中找出合适的bean注入。这是基本的思路，下面我将采用自顶向下的思路来对Spring依赖注入的源码进行剖析。</p>
@@ -521,342 +464,6 @@ public PropertyValues postProcessPropertyValues(
       <tags>
         <tag>Java</tag>
         <tag>Spring</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>你的单例真的是单例吗</title>
-    <url>/2019/08/04/%E4%BD%A0%E7%9A%84%E5%8D%95%E4%BE%8B%E7%9C%9F%E7%9A%84%E6%98%AF%E5%8D%95%E4%BE%8B%E5%90%97/</url>
-    <content><![CDATA[<p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
-<p>单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。</p>
-<p>下面看饿汉式的单例模式：</p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-import java.io.Serializable;
-
-/**
- * @author Kevin Leung
- */
-public class HungrySingleton implements Serializable {
-
-    private static final long serialVersionUID = -8180761491879455465L;
-
-    private static final HungrySingleton SINGLETON = new HungrySingleton();
-
-    private HungrySingleton() {
-
-    }
-
-    public static HungrySingleton getInstance() {
-        return SINGLETON;
-    }
-
-}
-</code></pre>
-<p>这时饿汉式标准的实现方式。我们知道，每次 getInstance 的时候都会返回同一个实例。但是，需要注意的时候在实例反序列化式的情况，对象在反序列化的时候，默认的做法会重新构造一个对象。看下面的示例：</p>
-<pre><code class="java">private static void hungrySingleton() throws IOException, ClassNotFoundException {
-  HungrySingleton hungrySingleton = HungrySingleton.getInstance();
-
-  HungrySingleton hungrySingleton1 = HungrySingleton.getInstance();
-
-  System.out.println(hungrySingleton == hungrySingleton1);
-
-  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;hungrySingleton.data&quot;));
-
-  os.writeObject(hungrySingleton1);
-
-  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;hungrySingleton.data&quot;));
-
-  hungrySingleton1 = (HungrySingleton) is.readObject();
-
-  System.out.println(hungrySingleton == hungrySingleton1);
-}
-</code></pre>
-<p>程序执行的结果为：</p>
-<blockquote>
-<p>true</p>
-<p>false</p>
-</blockquote>
-<p>对象在反序列化的时候出乎了我们的意料，对象发生了变化，这不是我们想看到的结果。那么如何解决这个问题呢？</p>
-<p>有两种解决方案，一种是实现 readResolve 方法，另一种是通过枚举的方式实现单例。</p>
-<h3 id="解决方案一"><a href="#解决方案一" class="headerlink" title="解决方案一"></a>解决方案一</h3><p>看 ObjectOutputStream 的 readObject 方法，可以看出，如果实例方法中有 readResovle 方法，先调用 readResovle 方法，返回 readResovle 方法返回的实例。</p>
-<p><img src="/.io//image-20190804212035702.png" alt="image-20190804212035702"></p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-import java.io.Serializable;
-
-/**
- * @author Kevin Leung
- */
-public class HungrySingleton implements Serializable {
-
-    private static final long serialVersionUID = -8180761491879455465L;
-
-    private static final HungrySingleton SINGLETON = new HungrySingleton();
-
-    private HungrySingleton() {
-
-    }
-
-    public static HungrySingleton getInstance() {
-        return SINGLETON;
-    }
-
-    private Object readResolve() {
-        return SINGLETON;
-    }
-
-}
-</code></pre>
-<p>看加上 readResovle 方法后效果如何。</p>
-<blockquote>
-<p>true</p>
-<p>true</p>
-</blockquote>
-<h3 id="解决方案二"><a href="#解决方案二" class="headerlink" title="解决方案二"></a>解决方案二</h3><p>使用枚举的方式解决反序列化的问题。</p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-/**
- * @author Kevin Leung
- */
-public enum EnumSingleton {
-    /**
-     * 单例
-     */
-    INSTANCE;
-
-    private String field;
-
-    public void setField(String field) {
-        this.field = field;
-    }
-
-    public String getField() {
-        return field;
-    }
-
-}
-</code></pre>
-<pre><code class="java">private static void enumSingleton() throws IOException, ClassNotFoundException {
-  EnumSingleton enumSingleton = EnumSingleton.INSTANCE;
-
-  EnumSingleton enumSingleton1 = EnumSingleton.INSTANCE;
-
-  System.out.println(enumSingleton == enumSingleton1);
-
-  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;enumSingleton.data&quot;));
-
-  os.writeObject(enumSingleton1);
-
-  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;enumSingleton.data&quot;));
-
-  enumSingleton1 = (EnumSingleton) is.readObject();
-
-  System.out.println(enumSingleton == enumSingleton1);
-}
-</code></pre>
-<p>输出结果为</p>
-<blockquote>
-<p>true</p>
-<p>true</p>
-</blockquote>
-<p>枚举之所以能够解决单例模式反序列化问题的原因是，反序列化的时候，枚举的实现方式和其他类型是不一样的。</p>
-<p>具体可看下面源码：</p>
-<p><img src="/.io//image-20190804214537510.png" alt="image-20190804214537510"></p>
-<p>在枚举反序列化的时候，调用了 Enum.valueOf 方法，这个方法会从枚举类中保存的 map 中获取枚举实例。也就是说，枚举在每次反序列化的时候，都会从公有的枚举 map 中获取对应 name 的实例。所以，每次反序列化后的都是同一个对象。</p>
-]]></content>
-      <tags>
-        <tag>单例模式</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>切换Brew软件源</title>
-    <url>/2022/06/26/%E5%88%87%E6%8D%A2Brew%E8%BD%AF%E4%BB%B6%E6%BA%90/</url>
-    <content><![CDATA[<p>Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。</p>
-<p><em>Homebrew</em> 主要有四个部分组成: <em>brew</em>、<em>homebrew-core</em> 、<em>homebrew-bottles</em>、<em>homebrew-cask</em>。</p>
-<table>
-<thead>
-<tr>
-<th>名称</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>brew</td>
-<td>Homebrew 源代码仓库</td>
-</tr>
-<tr>
-<td>homebrew-core</td>
-<td>Homebrew 核心软件仓库</td>
-</tr>
-<tr>
-<td>homebrew-bottles</td>
-<td>Homebrew 预编译二进制软件包</td>
-</tr>
-<tr>
-<td>homebrew-cask</td>
-<td>提供 macOS 应用和大型二进制文件</td>
-</tr>
-</tbody>
-</table>
-<h2 id="替换为阿里源"><a href="#替换为阿里源" class="headerlink" title="替换为阿里源"></a><strong>替换为阿里源</strong></h2><pre><code class="shell"># 查看 brew.git 当前源
-$ cd &quot;$(brew --repo)&quot; &amp;&amp; git remote -v
-origin    https://github.com/Homebrew/brew.git (fetch)
-origin    https://github.com/Homebrew/brew.git (push)
-
-# 查看 homebrew-core.git 当前源
-$ cd &quot;$(brew --repo homebrew/core)&quot; &amp;&amp; git remote -v
-origin    https://github.com/Homebrew/homebrew-core.git (fetch)
-origin    https://github.com/Homebrew/homebrew-core.git (push)
-
-# 修改 brew.git 为阿里源
-$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/brew.git
-
-# 修改 homebrew-core.git 为阿里源
-$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/homebrew-core.git
-
-# zsh 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
-$ source ~/.zshrc
-
-# bash 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
-$ source ~/.bash_profile
-
-# 刷新源
-$ brew update
-</code></pre>
-<h2 id="替换为清华源"><a href="#替换为清华源" class="headerlink" title="替换为清华源"></a>替换为清华源</h2><pre><code class="shell"># 替换各个源
-$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
-$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
-$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-cask.git
-
-# zsh 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
-$ source ~/.zshrc
-
-# bash 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
-$ source ~/.bash_profile
-
-# 刷新源
-$ brew update
-</code></pre>
-<h2 id="替换为中科大源"><a href="#替换为中科大源" class="headerlink" title="替换为中科大源"></a>替换为中科大源</h2><pre><code class="shell"># 替换各个源
-$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.ustc.edu.cn/brew.git
-$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-core.git
-$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-cask.git
-
-# zsh 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
-$ source ~/.zshrc
-
-# bash 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
-$ source ~/.bash_profile
-
-# 刷新源
-$ brew update
-</code></pre>
-<h2 id="重置为官方源"><a href="#重置为官方源" class="headerlink" title="重置为官方源"></a>重置为官方源</h2><pre><code class="shell"># 重置 brew.git 为官方源
-$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://github.com/Homebrew/brew.git
-
-# 重置 homebrew-core.git 为官方源
-$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://github.com/Homebrew/homebrew-core.git
-
-# 重置 homebrew-cask.git 为官方源
-$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://github.com/Homebrew/homebrew-cask
-
-# zsh 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
-$ vi ~/.zshrc
-# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
-
-# bash 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
-$ vi ~/.bash_profile
-# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
-
-# 刷新源
-$ brew update
-</code></pre>
-]]></content>
-      <tags>
-        <tag>小记</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>单例模式的四种实现</title>
-    <url>/2018/04/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%9B%9B%E7%A7%8D%E5%AE%9E%E7%8E%B0/</url>
-    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>单例模式能保证我们获取类的实例的时候，只能获取唯一的一个实例，这个实例是常驻内存的。</p>
-<h2 id="1-懒汉式"><a href="#1-懒汉式" class="headerlink" title="1. 懒汉式"></a>1. 懒汉式</h2><pre><code class="java">public class LazySingleton {
-
-    private static LazySingleton singleton;
-
-    private LazySingleton(){}
-
-    public static synchronized LazySingleton getInstance(){
-        if (singleton == null) {
-            singleton = new LazySingleton();
-        }
-        return singleton;
-    }
-}
-</code></pre>
-<p>懒汉式的特点就是在获取实例的时候才进行实例化，有懒加载的意思。在获取实例的时候使用synchronized关键字是为了保证线程安全。但是在获取实例的方法getInstance()中为了保证线程安全，对整个方法加锁，锁的粒度较大。</p>
-<h2 id="2-饿汉式"><a href="#2-饿汉式" class="headerlink" title="2. 饿汉式"></a>2. 饿汉式</h2><pre><code class="java">public class HungerSingleton {
-
-    private static final HungerSingleton SINGLETON = new HungerSingleton();
-
-    private HungerSingleton(){}
-
-    public static HungerSingleton getInstance(){
-        return SINGLETON;
-    }
-
-}
-</code></pre>
-<p>饿汉式会在类加载的时候进行初始化，这里因为该实例是不可变的，因此不存在线程不安全的问题。但是有个问题要注意到，就是容易占用额外的空间，原因是非需要时就创建了该实例。</p>
-<h2 id="3-双重检测锁"><a href="#3-双重检测锁" class="headerlink" title="3. 双重检测锁"></a>3. 双重检测锁</h2><pre><code class="java">public class DoubleCheckSingleton {
-
-    private static volatile DoubleCheckSingleton singleton;
-
-    private DoubleCheckSingleton(){}
-
-    public static DoubleCheckSingleton getInstance(){
-        if(singleton == null){
-            synchronized(DoubleCheckSingleton.class){
-                if(singleton == null){
-                    singleton = new DoubleCheckSingleton();
-                }
-            }
-        }
-        return singleton;
-    }
-
-}
-</code></pre>
-<p>在高并发的情况下，为了保证线程安全，不得不对getInstance()方法加锁，这里使用了双重检测的方式，先检测singleton是否为空，再进行加锁，然后在判断实singleton是否为空，如果为空再实例化。举个例子，有线程A和线程B同时获取DoubleCheckSingleton的实例，有几种情况</p>
-<p>如果线程A经过第一层检测之后，对该类的class实例加锁，然后经过第二层检测，随后实例化对象。此时线程B才去进行第一层检测，直接返回该实例。</p>
-<p>如果线程A经过第一层检测之后，线程B也经过的第一层检测，线程A对该类的class实例加锁，然后经过第二层检测，实例化对象。线程B因为无法获取锁而阻塞，当线程A退出synchronized代码块之后释放锁，线程B对该类的class实例加锁，经过第二层判断，此时singleton非空，因此退出该代码块返回singleton的实例。</p>
-<p>上述的线程A换做线程B，线程B换做线程A，一样的分析过程。</p>
-<p>有同学会注意到，singleton是被volatile修饰的，这里为什么要使用volatile修饰呢？网上说是为了防止jvm指令重排序，在线程A中，因为在实例化的过程中是非原子操作，jvm有可能会先将singleton的引用指向内存某地址，但是该地址空间中的初始化过程还没有完成，此时线程B在其他地方使用该实例就会出现异常。但是本人也有疑点，在《深入理解Java虚拟机》一书中提到，synchronized保证了原子性，可见性和防止指令重排序，何来非原子操作，何来指令重排序？本人也写过相关的实验，并没有发现线程不安全的情况。但本人才疏学浅，可能理解有误，希望各位同学指教，可能在某些场景下真的会发生线程不安全的情况。</p>
-<h2 id="4-枚举"><a href="#4-枚举" class="headerlink" title="4. 枚举"></a>4. 枚举</h2><pre><code class="java">public enum EnumSingleton {
-    ENUM_SINGLETON;
-
-    private EnumSingletonClazz enumSingletonClazz;
-
-    EnumSingleton(){
-        enumSingletonClazz = new EnumSingletonClazz();
-    }
-
-    public EnumSingletonClazz getInstance(){
-        return enumSingletonClazz;
-    }
-}
-</code></pre>
-<p>枚举中的每个元素都是public static final的，而且枚举类的构造方法也是私有的，我们在调用枚举实例的时候会枚举元素会被实例化，因为枚举元素是public static final的，因此枚举实例只有一个，在枚举元素实例化的时候我们将我们要实现单例的类也实例化，从而实现单例。在《Effective Java》一书中推荐使用这种方式。</p>
-]]></content>
-      <tags>
-        <tag>Java</tag>
       </tags>
   </entry>
   <entry>
@@ -1227,6 +834,399 @@ doSomethingwithconfig(context);
 ]]></content>
       <tags>
         <tag>Java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>你的单例真的是单例吗</title>
+    <url>/2019/08/04/%E4%BD%A0%E7%9A%84%E5%8D%95%E4%BE%8B%E7%9C%9F%E7%9A%84%E6%98%AF%E5%8D%95%E4%BE%8B%E5%90%97/</url>
+    <content><![CDATA[<p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
+<p>单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。</p>
+<p>下面看饿汉式的单例模式：</p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+import java.io.Serializable;
+
+/**
+ * @author Kevin Leung
+ */
+public class HungrySingleton implements Serializable {
+
+    private static final long serialVersionUID = -8180761491879455465L;
+
+    private static final HungrySingleton SINGLETON = new HungrySingleton();
+
+    private HungrySingleton() {
+
+    }
+
+    public static HungrySingleton getInstance() {
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>这时饿汉式标准的实现方式。我们知道，每次 getInstance 的时候都会返回同一个实例。但是，需要注意的时候在实例反序列化式的情况，对象在反序列化的时候，默认的做法会重新构造一个对象。看下面的示例：</p>
+<pre><code class="java">private static void hungrySingleton() throws IOException, ClassNotFoundException {
+  HungrySingleton hungrySingleton = HungrySingleton.getInstance();
+
+  HungrySingleton hungrySingleton1 = HungrySingleton.getInstance();
+
+  System.out.println(hungrySingleton == hungrySingleton1);
+
+  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;hungrySingleton.data&quot;));
+
+  os.writeObject(hungrySingleton1);
+
+  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;hungrySingleton.data&quot;));
+
+  hungrySingleton1 = (HungrySingleton) is.readObject();
+
+  System.out.println(hungrySingleton == hungrySingleton1);
+}
+</code></pre>
+<p>程序执行的结果为：</p>
+<blockquote>
+<p>true</p>
+<p>false</p>
+</blockquote>
+<p>对象在反序列化的时候出乎了我们的意料，对象发生了变化，这不是我们想看到的结果。那么如何解决这个问题呢？</p>
+<p>有两种解决方案，一种是实现 readResolve 方法，另一种是通过枚举的方式实现单例。</p>
+<h3 id="解决方案一"><a href="#解决方案一" class="headerlink" title="解决方案一"></a>解决方案一</h3><p>看 ObjectOutputStream 的 readObject 方法，可以看出，如果实例方法中有 readResovle 方法，先调用 readResovle 方法，返回 readResovle 方法返回的实例。</p>
+<p><img src="/.io//image-20190804212035702.png" alt="image-20190804212035702"></p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+import java.io.Serializable;
+
+/**
+ * @author Kevin Leung
+ */
+public class HungrySingleton implements Serializable {
+
+    private static final long serialVersionUID = -8180761491879455465L;
+
+    private static final HungrySingleton SINGLETON = new HungrySingleton();
+
+    private HungrySingleton() {
+
+    }
+
+    public static HungrySingleton getInstance() {
+        return SINGLETON;
+    }
+
+    private Object readResolve() {
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>看加上 readResovle 方法后效果如何。</p>
+<blockquote>
+<p>true</p>
+<p>true</p>
+</blockquote>
+<h3 id="解决方案二"><a href="#解决方案二" class="headerlink" title="解决方案二"></a>解决方案二</h3><p>使用枚举的方式解决反序列化的问题。</p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+/**
+ * @author Kevin Leung
+ */
+public enum EnumSingleton {
+    /**
+     * 单例
+     */
+    INSTANCE;
+
+    private String field;
+
+    public void setField(String field) {
+        this.field = field;
+    }
+
+    public String getField() {
+        return field;
+    }
+
+}
+</code></pre>
+<pre><code class="java">private static void enumSingleton() throws IOException, ClassNotFoundException {
+  EnumSingleton enumSingleton = EnumSingleton.INSTANCE;
+
+  EnumSingleton enumSingleton1 = EnumSingleton.INSTANCE;
+
+  System.out.println(enumSingleton == enumSingleton1);
+
+  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;enumSingleton.data&quot;));
+
+  os.writeObject(enumSingleton1);
+
+  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;enumSingleton.data&quot;));
+
+  enumSingleton1 = (EnumSingleton) is.readObject();
+
+  System.out.println(enumSingleton == enumSingleton1);
+}
+</code></pre>
+<p>输出结果为</p>
+<blockquote>
+<p>true</p>
+<p>true</p>
+</blockquote>
+<p>枚举之所以能够解决单例模式反序列化问题的原因是，反序列化的时候，枚举的实现方式和其他类型是不一样的。</p>
+<p>具体可看下面源码：</p>
+<p><img src="/.io//image-20190804214537510.png" alt="image-20190804214537510"></p>
+<p>在枚举反序列化的时候，调用了 Enum.valueOf 方法，这个方法会从枚举类中保存的 map 中获取枚举实例。也就是说，枚举在每次反序列化的时候，都会从公有的枚举 map 中获取对应 name 的实例。所以，每次反序列化后的都是同一个对象。</p>
+]]></content>
+      <tags>
+        <tag>单例模式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>使用markdown画流程图</title>
+    <url>/2019/03/10/%E4%BD%BF%E7%94%A8markdown%E7%94%BB%E6%B5%81%E7%A8%8B%E5%9B%BE/</url>
+    <content><![CDATA[<p>市面上有很多画流程图的软件，比如<a href="https://www.processon.com" target="_blank" rel="noopener">ProcessOn</a>, <a href="https://www.visual-paradigm.com/" target="_blank" rel="noopener">VisualParadigm</a>，这些软件都可以非常直观快速的构建一个流程图，但常常需要打开一个网页或一个软件而不够便捷，如果是一些比较复杂的流程描述我会使用以上两个软件，以上的两个软件都是通过图形拖拽的方式创建流程图，markdown提供一种文本描述的方式来创建流程图，这样不需要离开编辑的界面即可完成一个流程图，岂不妙哉？</p>
+<p>使用markdown来完成流程图需要注意编辑器支不支持画流程图，我使用的是typora是支持画流程图的，如果大家在自己的编辑器上画不出流程图，请查阅该编辑器的特性是否支持流程图。</p>
+<p>其实流程图的创建是基于flowchart.js的，编辑器是否能够支持画流程图本质上指的是否支持flowchart.js。</p>
+<h2 id="流程图的关键节点"><a href="#流程图的关键节点" class="headerlink" title="流程图的关键节点"></a>流程图的关键节点</h2><h3 id="1-开始节点"><a href="#1-开始节点" class="headerlink" title="1. 开始节点"></a>1. 开始节点</h3><p>开始节点表示流程的开始，每个算法流程都有且仅有一个入口，使用圆角矩形表示，在markdown中使用<strong>start</strong>关键字表示。</p>
+<h3 id="2-结束节点"><a href="#2-结束节点" class="headerlink" title="2. 结束节点"></a>2. 结束节点</h3><p>结束节点表示流程的结束，每个算法流程都需要指定结束节点，使用圆角矩形表示，在markdown中使用<strong>end</strong>关键字表示。</p>
+<h3 id="3-判断节点"><a href="#3-判断节点" class="headerlink" title="3. 判断节点"></a>3. 判断节点</h3><p>判断节点用于分支结构，表示流程中的逻辑判断，有两个出口，[yes] or [no]，使用棱形表示，在markdown中使用<strong>condition</strong>关键字表示。</p>
+<h3 id="4-操作节点"><a href="#4-操作节点" class="headerlink" title="4. 操作节点"></a>4. 操作节点</h3><p>操作节点的操作对象主要是数据，数据的变更和声明等等，使用直角矩形表示，在mardkwon中使用<strong>operation</strong>关键字表示。</p>
+<h3 id="5-输入输出节点"><a href="#5-输入输出节点" class="headerlink" title="5. 输入输出节点"></a>5. 输入输出节点</h3><p>数据的输入和输出都使用平行四边形表示，在markdown中使用<strong>inputoutput</strong>关键字表示。</p>
+<h2 id="在markdown如何嵌入流程图"><a href="#在markdown如何嵌入流程图" class="headerlink" title="在markdown如何嵌入流程图"></a>在markdown如何嵌入流程图</h2><p>在markdown中嵌入流程图和在markdown中嵌入代码块是一样的，如下嵌入一段java代码：</p>
+<blockquote>
+<p>``` java</p>
+<p>// some codes here.</p>
+<p>```</p>
+</blockquote>
+<p>同上，要嵌入流程图可以像这样：</p>
+<blockquote>
+<p>``` flow</p>
+<p>// describe your flowchart</p>
+<p>```</p>
+</blockquote>
+<h2 id="实战"><a href="#实战" class="headerlink" title="实战"></a>实战</h2><p>使用流程图描述使用水壶烧水的过程：</p>
+<pre><code>st=&gt;start: 开始
+e=&gt;end: 结束
+io1=&gt;inputoutput: 输入水量
+con1=&gt;condition: 校验水量是否通过
+op1=&gt;operation: 烧水并等待
+io2=&gt;inputoutput: 提示错误
+st-&gt;io1-&gt;con1
+con1(yes)-&gt;op1
+con1(no)-&gt;io2(right)-&gt;io1
+op1-&gt;e
+</code></pre><div id="flowchart-0" class="flow-chart"></div>
+
+<p>大家看到的“st=&gt;start: 开始”这类的语法，表示定义一个标识符，类似编程语言里的变量定义，具体的格式是这样的：</p>
+<blockquote>
+<p>标识符=&gt;关键字: 描述</p>
+</blockquote>
+<p>关键字是上面提到的几种流程图关键字，start, end, operation, condition, inputoutput, 我只是提了几种常用的，如何不符合读者的需求，各位可以上网自行查阅其他的图形使用的关键字。</p>
+<p>所有的标识符使用“-&gt;”连接起来，到此流程图就画出来了。连接的时候还可以指定连接位置，比如io2我使用了io2(right)，表示从右边发起连接。</p>
+<p><script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.2.7/raphael.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/flowchart/1.6.5/flowchart.min.js"></script><textarea id="flowchart-0-code" style="display: none">st=>start: 开始
+e=>end: 结束
+io1=>inputoutput: 输入水量
+con1=>condition: 校验水量是否通过
+op1=>operation: 烧水并等待
+io2=>inputoutput: 提示错误
+st->io1->con1
+con1(yes)->op1
+con1(no)->io2(right)->io1
+op1->e</textarea><textarea id="flowchart-0-options" style="display: none">{"scale":1,"line-width":2,"line-length":50,"text-margin":10,"font-size":12}</textarea><script>  var code = document.getElementById("flowchart-0-code").value;  var options = JSON.parse(decodeURIComponent(document.getElementById("flowchart-0-options").value));  var diagram = flowchart.parse(code);  diagram.drawSVG("flowchart-0", options);</script></p>
+]]></content>
+      <tags>
+        <tag>funny</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>单例模式的四种实现</title>
+    <url>/2018/04/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%9B%9B%E7%A7%8D%E5%AE%9E%E7%8E%B0/</url>
+    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>单例模式能保证我们获取类的实例的时候，只能获取唯一的一个实例，这个实例是常驻内存的。</p>
+<h2 id="1-懒汉式"><a href="#1-懒汉式" class="headerlink" title="1. 懒汉式"></a>1. 懒汉式</h2><pre><code class="java">public class LazySingleton {
+
+    private static LazySingleton singleton;
+
+    private LazySingleton(){}
+
+    public static synchronized LazySingleton getInstance(){
+        if (singleton == null) {
+            singleton = new LazySingleton();
+        }
+        return singleton;
+    }
+}
+</code></pre>
+<p>懒汉式的特点就是在获取实例的时候才进行实例化，有懒加载的意思。在获取实例的时候使用synchronized关键字是为了保证线程安全。但是在获取实例的方法getInstance()中为了保证线程安全，对整个方法加锁，锁的粒度较大。</p>
+<h2 id="2-饿汉式"><a href="#2-饿汉式" class="headerlink" title="2. 饿汉式"></a>2. 饿汉式</h2><pre><code class="java">public class HungerSingleton {
+
+    private static final HungerSingleton SINGLETON = new HungerSingleton();
+
+    private HungerSingleton(){}
+
+    public static HungerSingleton getInstance(){
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>饿汉式会在类加载的时候进行初始化，这里因为该实例是不可变的，因此不存在线程不安全的问题。但是有个问题要注意到，就是容易占用额外的空间，原因是非需要时就创建了该实例。</p>
+<h2 id="3-双重检测锁"><a href="#3-双重检测锁" class="headerlink" title="3. 双重检测锁"></a>3. 双重检测锁</h2><pre><code class="java">public class DoubleCheckSingleton {
+
+    private static volatile DoubleCheckSingleton singleton;
+
+    private DoubleCheckSingleton(){}
+
+    public static DoubleCheckSingleton getInstance(){
+        if(singleton == null){
+            synchronized(DoubleCheckSingleton.class){
+                if(singleton == null){
+                    singleton = new DoubleCheckSingleton();
+                }
+            }
+        }
+        return singleton;
+    }
+
+}
+</code></pre>
+<p>在高并发的情况下，为了保证线程安全，不得不对getInstance()方法加锁，这里使用了双重检测的方式，先检测singleton是否为空，再进行加锁，然后在判断实singleton是否为空，如果为空再实例化。举个例子，有线程A和线程B同时获取DoubleCheckSingleton的实例，有几种情况</p>
+<p>如果线程A经过第一层检测之后，对该类的class实例加锁，然后经过第二层检测，随后实例化对象。此时线程B才去进行第一层检测，直接返回该实例。</p>
+<p>如果线程A经过第一层检测之后，线程B也经过的第一层检测，线程A对该类的class实例加锁，然后经过第二层检测，实例化对象。线程B因为无法获取锁而阻塞，当线程A退出synchronized代码块之后释放锁，线程B对该类的class实例加锁，经过第二层判断，此时singleton非空，因此退出该代码块返回singleton的实例。</p>
+<p>上述的线程A换做线程B，线程B换做线程A，一样的分析过程。</p>
+<p>有同学会注意到，singleton是被volatile修饰的，这里为什么要使用volatile修饰呢？网上说是为了防止jvm指令重排序，在线程A中，因为在实例化的过程中是非原子操作，jvm有可能会先将singleton的引用指向内存某地址，但是该地址空间中的初始化过程还没有完成，此时线程B在其他地方使用该实例就会出现异常。但是本人也有疑点，在《深入理解Java虚拟机》一书中提到，synchronized保证了原子性，可见性和防止指令重排序，何来非原子操作，何来指令重排序？本人也写过相关的实验，并没有发现线程不安全的情况。但本人才疏学浅，可能理解有误，希望各位同学指教，可能在某些场景下真的会发生线程不安全的情况。</p>
+<h2 id="4-枚举"><a href="#4-枚举" class="headerlink" title="4. 枚举"></a>4. 枚举</h2><pre><code class="java">public enum EnumSingleton {
+    ENUM_SINGLETON;
+
+    private EnumSingletonClazz enumSingletonClazz;
+
+    EnumSingleton(){
+        enumSingletonClazz = new EnumSingletonClazz();
+    }
+
+    public EnumSingletonClazz getInstance(){
+        return enumSingletonClazz;
+    }
+}
+</code></pre>
+<p>枚举中的每个元素都是public static final的，而且枚举类的构造方法也是私有的，我们在调用枚举实例的时候会枚举元素会被实例化，因为枚举元素是public static final的，因此枚举实例只有一个，在枚举元素实例化的时候我们将我们要实现单例的类也实例化，从而实现单例。在《Effective Java》一书中推荐使用这种方式。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>切换Brew软件源</title>
+    <url>/2022/06/26/%E5%88%87%E6%8D%A2Brew%E8%BD%AF%E4%BB%B6%E6%BA%90/</url>
+    <content><![CDATA[<p>Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。</p>
+<p><em>Homebrew</em> 主要有四个部分组成: <em>brew</em>、<em>homebrew-core</em> 、<em>homebrew-bottles</em>、<em>homebrew-cask</em>。</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>brew</td>
+<td>Homebrew 源代码仓库</td>
+</tr>
+<tr>
+<td>homebrew-core</td>
+<td>Homebrew 核心软件仓库</td>
+</tr>
+<tr>
+<td>homebrew-bottles</td>
+<td>Homebrew 预编译二进制软件包</td>
+</tr>
+<tr>
+<td>homebrew-cask</td>
+<td>提供 macOS 应用和大型二进制文件</td>
+</tr>
+</tbody>
+</table>
+<h2 id="替换为阿里源"><a href="#替换为阿里源" class="headerlink" title="替换为阿里源"></a><strong>替换为阿里源</strong></h2><pre><code class="shell"># 查看 brew.git 当前源
+$ cd &quot;$(brew --repo)&quot; &amp;&amp; git remote -v
+origin    https://github.com/Homebrew/brew.git (fetch)
+origin    https://github.com/Homebrew/brew.git (push)
+
+# 查看 homebrew-core.git 当前源
+$ cd &quot;$(brew --repo homebrew/core)&quot; &amp;&amp; git remote -v
+origin    https://github.com/Homebrew/homebrew-core.git (fetch)
+origin    https://github.com/Homebrew/homebrew-core.git (push)
+
+# 修改 brew.git 为阿里源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/brew.git
+
+# 修改 homebrew-core.git 为阿里源
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/homebrew-core.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="替换为清华源"><a href="#替换为清华源" class="headerlink" title="替换为清华源"></a>替换为清华源</h2><pre><code class="shell"># 替换各个源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-cask.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="替换为中科大源"><a href="#替换为中科大源" class="headerlink" title="替换为中科大源"></a>替换为中科大源</h2><pre><code class="shell"># 替换各个源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.ustc.edu.cn/brew.git
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-core.git
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-cask.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="重置为官方源"><a href="#重置为官方源" class="headerlink" title="重置为官方源"></a>重置为官方源</h2><pre><code class="shell"># 重置 brew.git 为官方源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://github.com/Homebrew/brew.git
+
+# 重置 homebrew-core.git 为官方源
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://github.com/Homebrew/homebrew-core.git
+
+# 重置 homebrew-cask.git 为官方源
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://github.com/Homebrew/homebrew-cask
+
+# zsh 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
+$ vi ~/.zshrc
+# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
+
+# bash 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
+$ vi ~/.bash_profile
+# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
+
+# 刷新源
+$ brew update
+</code></pre>
+]]></content>
+      <tags>
+        <tag>小记</tag>
       </tags>
   </entry>
   <entry>
