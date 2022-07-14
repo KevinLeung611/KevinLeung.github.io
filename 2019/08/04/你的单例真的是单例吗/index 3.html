@@ -96,20 +96,28 @@
 <link href="/css/code-prettify/prettify.css" type="text/css" rel="stylesheet">
 
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="善博的博客">
-<meta property="og:url" content="https://kevinleung611.github.io/index.html">
+  <meta name="description" content="对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.kevinleung.d">
+<meta name="keywords" content="单例模式">
+<meta property="og:type" content="article">
+<meta property="og:title" content="你的单例真的是单例吗">
+<meta property="og:url" content="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/index.html">
 <meta property="og:site_name" content="善博的博客">
+<meta property="og:description" content="对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.kevinleung.d">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://kevinleung611.github.io/img/image-20190804212035702.png">
+<meta property="og:image" content="https://kevinleung611.github.io/img/image-20190804214537510.png">
+<meta property="og:updated_time" content="2022-06-26T10:22:35.924Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="善博的博客">
+<meta name="twitter:title" content="你的单例真的是单例吗">
+<meta name="twitter:description" content="对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.kevinleung.d">
+<meta name="twitter:image" content="https://kevinleung611.github.io/img/image-20190804212035702.png">
 
 
 
 
 
 
-  <link rel="canonical" href="https://kevinleung611.github.io/">
+  <link rel="canonical" href="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/">
 
 
 
@@ -119,7 +127,7 @@
   };
 </script>
 
-  <title>善博的博客</title>
+  <title>你的单例真的是单例吗 | 善博的博客</title>
   
 
 
@@ -167,8 +175,7 @@
     
   
 
-  <div class="container sidebar-position-left 
-  page-home">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -206,7 +213,7 @@
         
         
           
-          <li class="menu-item menu-item-home menu-item-active">
+          <li class="menu-item menu-item-home">
 
     
     
@@ -280,317 +287,9 @@
           
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
-
-  
-
-  
-  
-  
-
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://kevinleung611.github.io/2022/07/14/Spring启动流程/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="善博">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="善博的博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2022/07/14/Spring启动流程/" class="post-title-link" itemprop="url">Spring启动流程</a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-
-            
-            
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-
-              
-                
-              
-
-              <time title="创建时间：2022-07-14 00:00:00 / 修改时间：18:15:51" itemprop="dateCreated datePublished" datetime="2022-07-14T00:00:00+08:00">2022-07-14</time>
-            
-
-            
-              
-
-              
-            
-          </span>
-
-          
-
-          
-            
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>
-              概述从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。
-Spring的启动流程核心在于ApplicationContext的scan，refresh
-              ...
-            </p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2022/07/14/Spring启动流程/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-
-    
-    
-    
-
-    
-
-    
-      
-    
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://kevinleung611.github.io/2022/06/26/切换Brew软件源/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="善博">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="善博的博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2022/06/26/切换Brew软件源/" class="post-title-link" itemprop="url">切换Brew软件源</a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-
-            
-            
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-
-              
-                
-              
-
-              <time title="创建时间：2022-06-26 17:31:54 / 修改时间：18:22:36" itemprop="dateCreated datePublished" datetime="2022-06-26T17:31:54+08:00">2022-06-26</time>
-            
-
-            
-              
-
-              
-            
-          </span>
-
-          
-
-          
-            
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>
-              Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。
-Homebrew 主要有四个部分组成: brew、homebrew-core
-              ...
-            </p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2022/06/26/切换Brew软件源/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-
-    
-    
-    
-
-    
-
-    
-      
-    
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
 
   
 
@@ -622,10 +321,8 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
 
         
         
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2019/08/04/你的单例真的是单例吗/" class="post-title-link" itemprop="url">你的单例真的是单例吗</a>
+          <h1 class="post-title" itemprop="name headline">你的单例真的是单例吗
+
               
             
           </h1>
@@ -701,27 +398,152 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
       
 
       
-        
-          
-            <p>
-              对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。
-单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是
-              ...
-            </p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2019/08/04/你的单例真的是单例吗/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          
-          <!--/noindex-->
-        
+        <p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
+<p>单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。</p>
+<p>下面看饿汉式的单例模式：</p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+import java.io.Serializable;
+
+/**
+ * @author Kevin Leung
+ */
+public class HungrySingleton implements Serializable {
+
+    private static final long serialVersionUID = -8180761491879455465L;
+
+    private static final HungrySingleton SINGLETON = new HungrySingleton();
+
+    private HungrySingleton() {
+
+    }
+
+    public static HungrySingleton getInstance() {
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>这时饿汉式标准的实现方式。我们知道，每次 getInstance 的时候都会返回同一个实例。但是，需要注意的时候在实例反序列化式的情况，对象在反序列化的时候，默认的做法会重新构造一个对象。看下面的示例：</p>
+<pre><code class="java">private static void hungrySingleton() throws IOException, ClassNotFoundException {
+  HungrySingleton hungrySingleton = HungrySingleton.getInstance();
+
+  HungrySingleton hungrySingleton1 = HungrySingleton.getInstance();
+
+  System.out.println(hungrySingleton == hungrySingleton1);
+
+  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;hungrySingleton.data&quot;));
+
+  os.writeObject(hungrySingleton1);
+
+  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;hungrySingleton.data&quot;));
+
+  hungrySingleton1 = (HungrySingleton) is.readObject();
+
+  System.out.println(hungrySingleton == hungrySingleton1);
+}
+</code></pre>
+<p>程序执行的结果为：</p>
+<blockquote>
+<p>true</p>
+<p>false</p>
+</blockquote>
+<p>对象在反序列化的时候出乎了我们的意料，对象发生了变化，这不是我们想看到的结果。那么如何解决这个问题呢？</p>
+<p>有两种解决方案，一种是实现 readResolve 方法，另一种是通过枚举的方式实现单例。</p>
+<h3 id="解决方案一"><a href="#解决方案一" class="headerlink" title="解决方案一"></a>解决方案一</h3><p>看 ObjectOutputStream 的 readObject 方法，可以看出，如果实例方法中有 readResovle 方法，先调用 readResovle 方法，返回 readResovle 方法返回的实例。</p>
+<p><img src="/img/image-20190804212035702.png" alt="image-20190804212035702"></p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+import java.io.Serializable;
+
+/**
+ * @author Kevin Leung
+ */
+public class HungrySingleton implements Serializable {
+
+    private static final long serialVersionUID = -8180761491879455465L;
+
+    private static final HungrySingleton SINGLETON = new HungrySingleton();
+
+    private HungrySingleton() {
+
+    }
+
+    public static HungrySingleton getInstance() {
+        return SINGLETON;
+    }
+
+    private Object readResolve() {
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>看加上 readResovle 方法后效果如何。</p>
+<blockquote>
+<p>true</p>
+<p>true</p>
+</blockquote>
+<h3 id="解决方案二"><a href="#解决方案二" class="headerlink" title="解决方案二"></a>解决方案二</h3><p>使用枚举的方式解决反序列化的问题。</p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+/**
+ * @author Kevin Leung
+ */
+public enum EnumSingleton {
+    /**
+     * 单例
+     */
+    INSTANCE;
+
+    private String field;
+
+    public void setField(String field) {
+        this.field = field;
+    }
+
+    public String getField() {
+        return field;
+    }
+
+}
+</code></pre>
+<pre><code class="java">private static void enumSingleton() throws IOException, ClassNotFoundException {
+  EnumSingleton enumSingleton = EnumSingleton.INSTANCE;
+
+  EnumSingleton enumSingleton1 = EnumSingleton.INSTANCE;
+
+  System.out.println(enumSingleton == enumSingleton1);
+
+  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;enumSingleton.data&quot;));
+
+  os.writeObject(enumSingleton1);
+
+  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;enumSingleton.data&quot;));
+
+  enumSingleton1 = (EnumSingleton) is.readObject();
+
+  System.out.println(enumSingleton == enumSingleton1);
+}
+</code></pre>
+<p>输出结果为</p>
+<blockquote>
+<p>true</p>
+<p>true</p>
+</blockquote>
+<p>枚举之所以能够解决单例模式反序列化问题的原因是，反序列化的时候，枚举的实现方式和其他类型是不一样的。</p>
+<p>具体可看下面源码：</p>
+<p><img src="/img/image-20190804214537510.png" alt="image-20190804214537510"></p>
+<p>在枚举反序列化的时候，调用了 Enum.valueOf 方法，这个方法会从枚举类中保存的 map 中获取枚举实例。也就是说，枚举在每次反序列化的时候，都会从公有的枚举 map 中获取对应 name 的实例。所以，每次反序列化后的都是同一个对象。</p>
+
       
     </div>
 
     
+      
+
+
+    
 
     
     
@@ -734,348 +556,68 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>善博</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/" title="你的单例真的是单例吗">https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
       
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://kevinleung611.github.io/2019/03/10/使用markdown画流程图/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="善博">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="善博的博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2019/03/10/使用markdown画流程图/" class="post-title-link" itemprop="url">使用markdown画流程图</a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-
-            
-            
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-
-              
-                
-              
-
-              <time title="创建时间：2019-03-10 00:00:00" itemprop="dateCreated datePublished" datetime="2019-03-10T00:00:00+08:00">2019-03-10</time>
-            
-
-            
-              
-
-              
-                
-                <span class="post-meta-divider">|</span>
-                
-
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">更新于</span>
-                
-                <time title="修改时间：2022-06-26 18:22:32" itemprop="dateModified" datetime="2022-06-26T18:22:32+08:00">2022-06-26</time>
-              
-            
-          </span>
-
+        <div class="post-tags">
           
-
+            <a href="/tags/单例模式/" rel="tag"># 单例模式</a>
           
-            
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
         </div>
-      </header>
-    
+      
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
+      
       
       
 
       
-        
-          
-            <p>
-              市面上有很多画流程图的软件，比如ProcessOn, VisualParadigm，这些软件都可以非常直观快速的构建一个流程图，但常常需要打开一个网页或一个软件而不够便捷，如果是一些比较复杂的流程描述我会使用以上两个软件，以上的两个软件都是通过图形拖拽的方式创建流程图，markdown提供一种文本描
-              ...
-            </p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2019/03/10/使用markdown画流程图/#more" rel="contents">
-                阅读全文 &raquo;
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/10/使用markdown画流程图/" rel="next" title="使用markdown画流程图">
+                <i class="fa fa-chevron-left"></i> 使用markdown画流程图
               </a>
-            </div>
-          
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-
-    
-    
-    
-
-    
-
-    
-      
-    
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://kevinleung611.github.io/2019/03/01/Spring依赖注入实现原理/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="善博">
-      <meta itemprop="description" content>
-      <meta itemprop="image" content="/images/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="善博的博客">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2019/03/01/Spring依赖注入实现原理/" class="post-title-link" itemprop="url">Spring依赖注入实现原理</a>
-              
             
-          </h1>
-        
+          </div>
 
-        <div class="post-meta">
-          <span class="post-time">
+          <span class="post-nav-divider"></span>
 
+          <div class="post-nav-prev post-nav-item">
             
+              <a href="/2022/06/26/切换Brew软件源/" rel="prev" title="切换Brew软件源">
+                切换Brew软件源 <i class="fa fa-chevron-right"></i>
+              </a>
             
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-
-              
-                
-              
-
-              <time title="创建时间：2019-03-01 02:31:54" itemprop="dateCreated datePublished" datetime="2019-03-01T02:31:54+08:00">2019-03-01</time>
-            
-
-            
-              
-
-              
-                
-                <span class="post-meta-divider">|</span>
-                
-
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">更新于</span>
-                
-                <time title="修改时间：2022-06-26 18:23:10" itemprop="dateModified" datetime="2022-06-26T18:23:10+08:00">2022-06-26</time>
-              
-            
-          </span>
-
-          
-
-          
-            
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
+          </div>
         </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
       
 
       
-        
-          
-            <p>
-              实现猜想Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这
-              ...
-            </p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2019/03/01/Spring依赖注入实现原理/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-
-    
-    
-    
-
-    
-
-    
-      
-    
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
       
     </footer>
   </div>
@@ -1085,18 +627,15 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
   </article>
 
 
-    
-  </section>
-
-  
-  <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
-  </nav>
-
+  </div>
 
 
           </div>
           
+
+  
+
+
 
         </div>
         
@@ -1116,8 +655,17 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -1134,7 +682,7 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
                 
                   <a href="/archives">
                 
-                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-count">10</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -1219,6 +767,23 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#解决方案一"><span class="nav-number">1.</span> <span class="nav-text">解决方案一</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#解决方案二"><span class="nav-number">2.</span> <span class="nav-text">解决方案二</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -1344,6 +909,10 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
 
 
   
+  <script src="/js/src/scrollspy.js?v=7.0.0"></script>
+<script src="/js/src/post-details.js?v=7.0.0"></script>
+
+
 
   
 
@@ -1354,6 +923,8 @@ Homebrew 主要有四个部分组成: brew、homebrew-core
   
   
 
+
+  
 
 
   

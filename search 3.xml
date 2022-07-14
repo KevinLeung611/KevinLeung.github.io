@@ -1,0 +1,1425 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Spring依赖注入实现原理</title>
+    <url>/2019/03/01/Spring%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</url>
+    <content><![CDATA[<h2 id="实现猜想"><a href="#实现猜想" class="headerlink" title="实现猜想"></a>实现猜想</h2><p>Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从beanFactory中找出合适的bean注入。这是基本的思路，下面我将采用自顶向下的思路来对Spring依赖注入的源码进行剖析。</p>
+<h2 id="AbstractBeanFactory"><a href="#AbstractBeanFactory" class="headerlink" title="AbstractBeanFactory"></a>AbstractBeanFactory</h2><p>在这个类中定义了获取Bean的方法</p>
+<pre><code class="java">/**
+* Return an instance, which may be shared or independent, of the specified bean.
+* @param name the name of the bean to retrieve
+* @param requiredType the required type of the bean to retrieve
+* @param args arguments to use when creating a bean instance using explicit arguments
+* (only applied when creating a new instance as opposed to retrieving an existing one)
+* @return an instance of the bean
+* @throws BeansException if the bean could not be created
+*/
+public &lt;T&gt; T getBean(String name, @Nullable Class&lt;T&gt; requiredType, @Nullable Object... args) throws BeansException {
+        return doGetBean(name, requiredType, args, false);
+}
+</code></pre>
+<p>当Spring调用getBean方法的时候，也就是调用AbstractBeanFactory中的doCreateBean()方法，Spring既然设置Bean默认的生命周期是Singleton，那么，Spring这里先从Singleton的缓存中取出Bean的实例赋值给sharedInstance，如果是singleton固然能从singleton中的缓存中取出相应的实例，若不能，则说明该实例不是一个Singleton或者还没有实例化。</p>
+<pre><code class="java">// Eagerly check singleton cache for manually registered singletons.
+Object sharedInstance = getSingleton(beanName);
+if (sharedInstance != null &amp;&amp; args == null) {
+    if (logger.isDebugEnabled()) {
+        if (isSingletonCurrentlyInCreation(beanName)) {
+            logger.debug(&quot;Returning eagerly cached instance of singleton bean &#39;&quot; + beanName +
+                    &quot;&#39; that is not fully initialized yet - a consequence of a circular reference&quot;);
+        }
+        else {
+            logger.debug(&quot;Returning cached instance of singleton bean &#39;&quot; + beanName + &quot;&#39;&quot;);
+        }
+    }
+    bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
+}
+</code></pre>
+<p>然后使用mbd判断sharedInstance是否是Singleton。mbd表示RootBeanDefinition，用于描述Bean的一些属性，包括这个Bean是否是单例，管理的注入成员，管理的初始化方法和销毁方法，具体的各位读者可以到RootBeanDefinition看看，这里就不讲述了。如果该Bean是一个Singleton，就执行createBean()方法。</p>
+<pre><code class="java">/ Create bean instance.
+if (mbd.isSingleton()) {
+    sharedInstance = getSingleton(beanName, () -&gt; {
+        try {
+            return createBean(beanName, mbd, args);
+        }
+        catch (BeansException ex) {
+        // Explicitly remove instance from singleton cache: It might have been put there
+        // eagerly by the creation process, to allow for circular reference resolution.
+        // Also remove any beans that received a temporary reference to the bean.
+            destroySingleton(beanName);
+            throw ex;
+        }
+    });
+    bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
+}
+</code></pre>
+<p>在createBean中有调用了doCreateBean()方法，但是这个doCreateBean()方法是AbstractAutowireCapableBeanFactory的doCreateBean()方法。</p>
+<pre><code class="java">try {
+    Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+    if (logger.isDebugEnabled()) {
+        logger.debug(&quot;Finished creating instance of bean &#39;&quot; + beanName + &quot;&#39;&quot;);
+    }
+    return beanInstance;
+}
+catch (BeanCreationException ex) {
+    // A previously detected exception with proper bean creation context already...
+    throw ex;
+}
+catch (ImplicitlyAppearedSingletonException ex) {
+    // An IllegalStateException to be communicated up to DefaultSingletonBeanRegistry...
+    throw ex;
+}
+catch (Throwable ex) {
+    throw new BeanCreationException(
+            mbdToUse.getResourceDescription(), beanName, &quot;Unexpected exception during bean creation&quot;, ex);
+}
+</code></pre>
+<p>在doCreateBean的时候会有一个合并BeanDefinition的过程</p>
+<pre><code class="java">applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
+</code></pre>
+<p>我们再来看看这个方法的实现，我们发现这个会获取BeanPostProcessors，Spring和我们定义的BeanPostProcessor都会存放在AbstractBeanFactory中，这里获取BeanPostProcessor的集合，只要这个BeanPostprocessor是MergedBeanDefinitionPostProcessor，则执行postProcessMergedBeanDefinition()方法，我们继续最终，发现AbstractAnnotationBeanPostProcessor中定义的postProcessMergedBeanDefinition()</p>
+<pre><code class="java">/**
+* Apply MergedBeanDefinitionPostProcessors to the specified bean definition,
+* invoking their {@code postProcessMergedBeanDefinition} methods.
+* @param mbd the merged bean definition for the bean
+* @param beanType the actual type of the managed bean instance
+* @param beanName the name of the bean
+* @see MergedBeanDefinitionPostProcessor#postProcessMergedBeanDefinition
+*/
+protected void applyMergedBeanDefinitionPostProcessors(RootBeanDefinition mbd, Class&lt;?&gt; beanType, String beanName) {
+    for (BeanPostProcessor bp : getBeanPostProcessors()) {
+        if (bp instanceof MergedBeanDefinitionPostProcessor) {
+            MergedBeanDefinitionPostProcessor bdp = (MergedBeanDefinitionPostProcessor) bp;
+            bdp.postProcessMergedBeanDefinition(mbd, beanType, beanName);
+        }
+    }
+}
+</code></pre>
+<h2 id="AutowiredAnnotationBeanPostProcessor"><a href="#AutowiredAnnotationBeanPostProcessor" class="headerlink" title="AutowiredAnnotationBeanPostProcessor"></a>AutowiredAnnotationBeanPostProcessor</h2><p>这个类在org.springframework.beans.factory.annotation下，它是实现@Autowired注解的处理器，先来看一下这个类的定义</p>
+<pre><code class="java">public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBeanPostProcessorAdapter
+        implements MergedBeanDefinitionPostProcessor, PriorityOrdered, BeanFactoryAware
+</code></pre>
+<p>往上溯源我们可以知道，其实AutowiredAnnoationBeanProcessor就是一个BeanPostProcessor，也就意味着，在一个bean被初始化之前和初始化之后是可以做某些操作的。上面提到，Spring在createBean的时候会合并BeanDefinition，在这个时候调用MergedBeanDefinitionPostProcessor的postProcessMergedBeanDefinition()方法，关于AutowiredAnnotationBeanPostProcessor中定义的postProcessMergedBeanDefinition()方法如下：</p>
+<pre><code class="java">@Override
+public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class&lt;?&gt; beanType, String beanName) {
+    InjectionMetadata metadata = findAutowiringMetadata(beanName, beanType, null);
+    metadata.checkConfigMembers(beanDefinition);
+}
+</code></pre>
+<p>其中的findAutowiringMetadata()就是查找该类中被@Autowired或者@Value修饰的成员，包括成员属性，构造器和方法(@Value不能作用与构造器)，将找到的成员属性或者方法封装在InjectionMetadata的injectedElements中。具体怎么查找并封装的，同学们可以继续追踪下去，这里就不深究了。</p>
+<h2 id="AbstractAutowireCapableBeanFactory"><a href="#AbstractAutowireCapableBeanFactory" class="headerlink" title="AbstractAutowireCapableBeanFactory"></a>AbstractAutowireCapableBeanFactory</h2><p>我们再回到合并BeanDefinition的地方，合并完BeanDefinition之后，也就意味着该类中被@Autowired和@Value注解的成员属性和成员方法已经找到了，但是Spring并没有立即执行注入。往后看，发现：</p>
+<pre><code class="java">populateBean(beanName, mbd, instanceWrapper);
+</code></pre>
+<p>该方法用于填充Bean，包括依赖注入</p>
+<pre><code class="java">for (BeanPostProcessor bp : getBeanPostProcessors()) {
+    if (bp instanceof InstantiationAwareBeanPostProcessor) {
+        InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;
+        pvs = ibp.postProcessPropertyValues(pvs, filteredPds, bw.getWrappedInstance(), beanName);
+        if (pvs == null) {
+            return;
+        }
+    }
+}
+</code></pre>
+<p>我们可以看到，从AbstractBeanFactory中获取BeanPostProcessor集合，找出InstantiationAwareBeanPostProcessor，调用postProcessPropertyValues()方法，我们来看AutowiredAnnotationBeanPostProcessor的实现</p>
+<pre><code class="java">@Override
+public PropertyValues postProcessPropertyValues(
+    PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName) throws BeanCreationException {
+    InjectionMetadata metadata = findAutowiringMetadata(beanName, bean.getClass(), pvs);
+    try {
+        metadata.inject(bean, beanName, pvs);
+    }
+    catch (BeanCreationException ex) {
+        throw ex;
+    }
+    catch (Throwable ex) {
+        throw new BeanCreationException(beanName, &quot;Injection of autowired dependencies failed&quot;, ex);
+    }
+    return pvs;
+}
+</code></pre>
+<p>先找出类中被@Autowired或@Value修饰的成员属性和成员方法，如果之前执行了合并BeanDefinition的操作，那么这里获取成员属性和成员方法只需要从缓存中取即可，关键是metadata.inject()方法，使用该方法最终完成依赖注入。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>同学们看到上面的分析过程可能会有点晕，下面我用简单的方式来总结Spring依赖注入的实现过程。</p>
+<p>Spring在实例化Bean的时候会进行合并BeanDefinition的过程，在这个过程中，会查找Bean和该Bean的父类中被@Autowired注解修饰的成员属性和方法，将其添加至AutowiredAnnotationBeanPostProcessor中的缓存中，并封装在InjectionMetaData，这样就完成了预备动作，接下来populateBean也就是填充Bean的时候，通过postProcessorPropertyValues方法将该Bean的依赖注入其中，通过InjectionMetaData的inject()方法就完成注入了。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+        <tag>Spring</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CentOS6安装mysql5.7</title>
+    <url>/2018/10/14/CentOS6-%E5%AE%89%E8%A3%85-mysql5-7/</url>
+    <content><![CDATA[<p>如何在CentOS6上安装mysql5.7?</p>
+<ol>
+<li>Step1: 检测系统是否自带安装mysql</li>
+</ol>
+<pre><code class="bash">yum list installed | grep mysql    
+</code></pre>
+<ol start="2">
+<li>Step2: 删除系统自带的mysql及其依赖</li>
+</ol>
+<pre><code class="bash">yum -y remove mysql-*
+</code></pre>
+<ol start="3">
+<li>Step3: 给CentOS添加rpm源，并且选择较新的源</li>
+</ol>
+<pre><code class="bash">wget dev.mysql.com/get/mysql-community-release-el6-5.noarch.rpm
+
+yum localinstall mysql-community-release-el6-5.noarch.rpm
+
+yum repolist all | grep mysql
+
+yum-config-manager –disable mysql55-community
+
+yum-config-manager –disable mysql56-community
+
+yum-config-manager –enable mysql57-community-dmr
+
+yum repolist enabled | grep mysql
+</code></pre>
+<ol start="4">
+<li>Step4:安装mysql 服务器</li>
+</ol>
+<pre><code class="bash">yum install mysql-community-server
+</code></pre>
+<ol start="5">
+<li>Step5: 启动mysql</li>
+</ol>
+<pre><code class="bash">service mysqld start
+</code></pre>
+<ol start="6">
+<li>Step6: 查看mysql是否自启动,并且设置开启自启动</li>
+</ol>
+<pre><code class="bash">chkconfig –list | grep mysqld
+
+chkconfig mysqld on
+</code></pre>
+<ol start="7">
+<li>Step7: mysql安全设置</li>
+</ol>
+<pre><code class="bash">mysql_secure_installation
+</code></pre>
+<ol start="8">
+<li>Step8：mysql安全设置获取root默认密码</li>
+</ol>
+<pre><code class="bash">grep “temporary password” /var/log/mysqld.log
+</code></pre>
+]]></content>
+      <tags>
+        <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>你的单例真的是单例吗</title>
+    <url>/2019/08/04/%E4%BD%A0%E7%9A%84%E5%8D%95%E4%BE%8B%E7%9C%9F%E7%9A%84%E6%98%AF%E5%8D%95%E4%BE%8B%E5%90%97/</url>
+    <content><![CDATA[<p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
+<p>单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。</p>
+<p>下面看饿汉式的单例模式：</p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+import java.io.Serializable;
+
+/**
+ * @author Kevin Leung
+ */
+public class HungrySingleton implements Serializable {
+
+    private static final long serialVersionUID = -8180761491879455465L;
+
+    private static final HungrySingleton SINGLETON = new HungrySingleton();
+
+    private HungrySingleton() {
+
+    }
+
+    public static HungrySingleton getInstance() {
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>这时饿汉式标准的实现方式。我们知道，每次 getInstance 的时候都会返回同一个实例。但是，需要注意的时候在实例反序列化式的情况，对象在反序列化的时候，默认的做法会重新构造一个对象。看下面的示例：</p>
+<pre><code class="java">private static void hungrySingleton() throws IOException, ClassNotFoundException {
+  HungrySingleton hungrySingleton = HungrySingleton.getInstance();
+
+  HungrySingleton hungrySingleton1 = HungrySingleton.getInstance();
+
+  System.out.println(hungrySingleton == hungrySingleton1);
+
+  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;hungrySingleton.data&quot;));
+
+  os.writeObject(hungrySingleton1);
+
+  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;hungrySingleton.data&quot;));
+
+  hungrySingleton1 = (HungrySingleton) is.readObject();
+
+  System.out.println(hungrySingleton == hungrySingleton1);
+}
+</code></pre>
+<p>程序执行的结果为：</p>
+<blockquote>
+<p>true</p>
+<p>false</p>
+</blockquote>
+<p>对象在反序列化的时候出乎了我们的意料，对象发生了变化，这不是我们想看到的结果。那么如何解决这个问题呢？</p>
+<p>有两种解决方案，一种是实现 readResolve 方法，另一种是通过枚举的方式实现单例。</p>
+<h3 id="解决方案一"><a href="#解决方案一" class="headerlink" title="解决方案一"></a>解决方案一</h3><p>看 ObjectOutputStream 的 readObject 方法，可以看出，如果实例方法中有 readResovle 方法，先调用 readResovle 方法，返回 readResovle 方法返回的实例。</p>
+<p><img src="/img/image-20190804212035702.png" alt="image-20190804212035702"></p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+import java.io.Serializable;
+
+/**
+ * @author Kevin Leung
+ */
+public class HungrySingleton implements Serializable {
+
+    private static final long serialVersionUID = -8180761491879455465L;
+
+    private static final HungrySingleton SINGLETON = new HungrySingleton();
+
+    private HungrySingleton() {
+
+    }
+
+    public static HungrySingleton getInstance() {
+        return SINGLETON;
+    }
+
+    private Object readResolve() {
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>看加上 readResovle 方法后效果如何。</p>
+<blockquote>
+<p>true</p>
+<p>true</p>
+</blockquote>
+<h3 id="解决方案二"><a href="#解决方案二" class="headerlink" title="解决方案二"></a>解决方案二</h3><p>使用枚举的方式解决反序列化的问题。</p>
+<pre><code class="java">package com.kevinleung.demo.single;
+
+/**
+ * @author Kevin Leung
+ */
+public enum EnumSingleton {
+    /**
+     * 单例
+     */
+    INSTANCE;
+
+    private String field;
+
+    public void setField(String field) {
+        this.field = field;
+    }
+
+    public String getField() {
+        return field;
+    }
+
+}
+</code></pre>
+<pre><code class="java">private static void enumSingleton() throws IOException, ClassNotFoundException {
+  EnumSingleton enumSingleton = EnumSingleton.INSTANCE;
+
+  EnumSingleton enumSingleton1 = EnumSingleton.INSTANCE;
+
+  System.out.println(enumSingleton == enumSingleton1);
+
+  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;enumSingleton.data&quot;));
+
+  os.writeObject(enumSingleton1);
+
+  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;enumSingleton.data&quot;));
+
+  enumSingleton1 = (EnumSingleton) is.readObject();
+
+  System.out.println(enumSingleton == enumSingleton1);
+}
+</code></pre>
+<p>输出结果为</p>
+<blockquote>
+<p>true</p>
+<p>true</p>
+</blockquote>
+<p>枚举之所以能够解决单例模式反序列化问题的原因是，反序列化的时候，枚举的实现方式和其他类型是不一样的。</p>
+<p>具体可看下面源码：</p>
+<p><img src="/img/image-20190804214537510.png" alt="image-20190804214537510"></p>
+<p>在枚举反序列化的时候，调用了 Enum.valueOf 方法，这个方法会从枚举类中保存的 map 中获取枚举实例。也就是说，枚举在每次反序列化的时候，都会从公有的枚举 map 中获取对应 name 的实例。所以，每次反序列化后的都是同一个对象。</p>
+]]></content>
+      <tags>
+        <tag>单例模式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java容器：ArrayList源码解析</title>
+    <url>/2018/03/31/Java%E5%AE%B9%E5%99%A8%EF%BC%9AArrayList%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/</url>
+    <content><![CDATA[<h2 id="ArrayList"><a href="#ArrayList" class="headerlink" title="ArrayList"></a>ArrayList</h2><p>关于ArrayList，很多同学都不会感觉到陌生，它的存在就好像我们上学用的书包，方便而常用。只是这个“书包”，是可以自己变大的。是不是觉得很不可思议？当里面的“书本”达到一定数量了，这个“书包”会自动扩容，让你能放更多的“书”。但是我本人希望书包能够越做越小，但里面能放更多的书，哈哈。好了，那么ArrayList为什么能做到这一点？下面我们来探讨一下。</p>
+<h2 id="ArrayList实现的接口"><a href="#ArrayList实现的接口" class="headerlink" title="ArrayList实现的接口"></a>ArrayList实现的接口</h2><p>我们来看看ArrayList的class定义(jdk1.9，不同的jdk版本可能会有不同的实现，但思想是一致的)</p>
+<pre><code class="Java">public class ArrayList&lt;E&gt; extends AbstractList&lt;E&gt;
+        implements List&lt;E&gt;, RandomAccess, Cloneable, java.io.Serializable
+</code></pre>
+<p>ArrayList继承了AbstractList抽象列表，里面定义了诸如add，get，remove，addAll，clear等抽象方法，同时ArrayList实现了List，RandomAccess，Cloneable和Serializable接口。</p>
+<p>点开AbstractList可以发现，AbstractList也是实现了List接口的，可能有些同学会问，为什么ArrayList继承了AbstractList还需要实现List接口呢？网上关于这个问题，大多是这样的说法</p>
+<blockquote>
+<p>It’s a way to remember that this class really implements that interface.It won’t have any bad effect and it can help to understand the code without going through the complete hierarchy of the given class.</p>
+</blockquote>
+<p>意思是通过这种方式增加代码的可读性，提醒阅读者，ArrayList就是一个List，而无需查看AbstractList进行确认。</p>
+<p>ArrayList还实现了RandomAcesss，Cloneable和Serializable接口，表明这个类是可随机访问，可克隆和可序列化的。</p>
+<h2 id="ArrayList定义的常量"><a href="#ArrayList定义的常量" class="headerlink" title="ArrayList定义的常量"></a>ArrayList定义的常量</h2><pre><code class="java">    private static final long serialVersionUID = 8683452581122892189L;
+
+    /**
+     * Default initial capacity.
+     */
+    private static final int DEFAULT_CAPACITY = 10;
+
+    /**
+     * Shared empty array instance used for empty instances.
+     */
+    private static final Object[] EMPTY_ELEMENTDATA = {};
+
+    /**
+     * Shared empty array instance used for default sized empty instances. We
+     * distinguish this from EMPTY_ELEMENTDATA to know how much to inflate when
+     * first element is added.
+     */
+    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
+
+    /**
+     * The array buffer into which the elements of the ArrayList are stored.
+     * The capacity of the ArrayList is the length of this array buffer. Any
+     * empty ArrayList with elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA
+     * will be expanded to DEFAULT_CAPACITY when the first element is added.
+     */
+    transient Object[] elementData; // non-private to simplify nested class access
+
+    /**
+     * The size of the ArrayList (the number of elements it contains).
+     *
+     * @serial
+     */
+    private int size;
+</code></pre>
+<p>这里我们关注几个点，DEFAULT_CAPACITY，EMPTY_ELEMENTDATA，elementData，size</p>
+<p>关于serialVersionUID可能有些同学会有疑问，这里简单解释一下，serialVersionUID适用于Java的序列化机制。简单来说，Java的序列化机制是通过判断类的serialVersionUID来验证版本一致性的。在进行反序列化时，JVM会把传来的字节流中的serialVersionUID与本地相应实体类的serialVersionUID进行比较，如果相同就认为是一致的，可以进行反序列化，否则就会出现序列化版本不一致的异常，即是InvalidCastException。</p>
+<h3 id="DEFAULT-CAPACITY"><a href="#DEFAULT-CAPACITY" class="headerlink" title="DEFAULT_CAPACITY"></a>DEFAULT_CAPACITY</h3><p>DEFAULT_CAPACITY定义了实例化ArrayList时，ArrayList默认的容量大小，这个容量大小是在第一次往ArrayList中添加元素的时候才会初始化的。</p>
+<pre><code class="java">private int newCapacity(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = elementData.length;
+        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
+        if (newCapacity - minCapacity &lt;= 0) {
+            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+                return Math.max(DEFAULT_CAPACITY, minCapacity);
+            if (minCapacity &lt; 0) // overflow
+                throw new OutOfMemoryError();
+            return minCapacity;
+        }
+        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
+            ? newCapacity
+            : hugeCapacity(minCapacity);
+    }
+</code></pre>
+<p>当我们往ArrayList中添加元素时，判断如果这个List的size是否等于目前elementData的限定长度，如果是，就需要扩容，如果ArrayList是刚创建的，那么一开始往ArrayList中添加元素的这个判断就是true，扩容时，ArrayList采取的方式是使用Arrays.copyOf(elementData, newCapacity(minCapacity))方法复制elementData，并根据扩大的容量新建一个数组再赋值给elementData，这样就完成了扩容，上面的newCapacity(minCapacity)就是扩容的过程。这里的minCapacity一般是指ArrayList原有的size+1，因为扩容最起码增加一个容量嘛，这很容易理解。</p>
+<p>扩容公式：int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
+<p>如果计算出新的容量比最小容量小，通常的情况是把最小容量返回给调用者。当第一次添加元素的时候新的容量就比最小容量小，并且elementData也等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，这里有同学可能存有疑问，为什么这两个对象会相等？其实我们在不指定容量的情况下实例化ArrayList的时候，就把DEFAULTCAPACITY_EMPTY_ELEMENTDATA赋值给了elementData</p>
+<pre><code class="java">/**
+     * Constructs an empty list with an initial capacity of ten.
+     */
+    public ArrayList() {
+        this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
+    }
+</code></pre>
+<p>这是扩展出的新容量大小就是DEFAULT_CAPACITY</p>
+<h3 id="EMPTY-ELEMENTDATA"><a href="#EMPTY-ELEMENTDATA" class="headerlink" title="EMPTY_ELEMENTDATA"></a>EMPTY_ELEMENTDATA</h3><p>EMPTY_ELEMENTDATA的作用通过注释也能很清楚是干什么的，但是通过注释去了解程序我是不建议的，毕竟注释不是最真实的。</p>
+<p>通过查看调用EMPTY_ELEMENTDATA的地方可以看出，当我们实例化ArrayList的时候指定容量为0，EMPTY_ELEMENTDATA会被赋值给elementData，这就引发了另一问题，上面讲到，在扩容的时候会判断elementData是否等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，如果不等会直接返回最小容量，这就导致了在元素不多，甚至只有几个的时候，扩容的次数会变得频繁。</p>
+<p>什么时候elementData是EMPTY_ELEMENTDATA？</p>
+<ol>
+<li><p>当我们实例化ArrayList指定容量大小为0</p>
+</li>
+<li><p>当传递一个Collection容量大小为0</p>
+</li>
+<li><p>当调用trimToSize()，ArrayList的size为0</p>
+</li>
+<li><p>从对象输入流中读取一个ArrayList时，size为0</p>
+</li>
+</ol>
+<h3 id="elementData"><a href="#elementData" class="headerlink" title="elementData"></a>elementData</h3><p>通过上面的描述，相信同学们对elementData也有了一定的认识了。elementData其实就是存储数据的对象，我们往ArrayList中添加元素时，接收元素的就是elementData。需要注意的是，elementData的length并不等于ArrayList的size，elementData的length指的是ArrayList的capacity（容量），而size指的是ArrayList中元素的个数，当添加了一个元素的时候size会加1，而elementData的length不一定会改变。</p>
+<h3 id="ArrayList精髓"><a href="#ArrayList精髓" class="headerlink" title="ArrayList精髓"></a>ArrayList精髓</h3><h4 id="扩容过程"><a href="#扩容过程" class="headerlink" title="扩容过程"></a>扩容过程</h4><p>ArrayList是如何做到自动扩容的，或者说ArrayList是如何做到合理扩容的。先来看一下添加元素相关的方法</p>
+<pre><code class="java">/**
+     * This helper method split out from add(E) to keep method
+     * bytecode size under 35 (the -XX:MaxInlineSize default value),
+     * which helps when add(E) is called in a C1-compiled loop.
+     */
+    private void add(E e, Object[] elementData, int s) {
+        if (s == elementData.length)
+            elementData = grow();
+        elementData[s] = e;
+        size = s + 1;
+    }
+
+    /**
+     * Appends the specified element to the end of this list.
+     *
+     * @param e element to be appended to this list
+     * @return {@code true} (as specified by {@link Collection#add})
+     */
+    public boolean add(E e) {
+        modCount++;
+        add(e, elementData, size);
+        return true;
+    }
+
+    /**
+     * Increases the capacity to ensure that it can hold at least the
+     * number of elements specified by the minimum capacity argument.
+     *
+     * @param minCapacity the desired minimum capacity
+     * @throws OutOfMemoryError if minCapacity is less than zero
+     */
+    private Object[] grow(int minCapacity) {
+        return elementData = Arrays.copyOf(elementData,
+                                           newCapacity(minCapacity));
+    }
+
+    private Object[] grow() {
+        return grow(size + 1);
+    }
+
+    /**
+     * Returns a capacity at least as large as the given minimum capacity.
+     * Returns the current capacity increased by 50% if that suffices.
+     * Will not return a capacity greater than MAX_ARRAY_SIZE unless
+     * the given minimum capacity is greater than MAX_ARRAY_SIZE.
+     *
+     * @param minCapacity the desired minimum capacity
+     * @throws OutOfMemoryError if minCapacity is less than zero
+     */
+    private int newCapacity(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = elementData.length;
+        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
+        if (newCapacity - minCapacity &lt;= 0) {
+            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+                return Math.max(DEFAULT_CAPACITY, minCapacity);
+            if (minCapacity &lt; 0) // overflow
+                throw new OutOfMemoryError();
+            return minCapacity;
+        }
+        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
+            ? newCapacity
+            : hugeCapacity(minCapacity);
+    }
+</code></pre>
+<p>当我们调用ArrayList的add()方法时，会先判断ArrayList的size是否等于elementData的length，也就是问一下，目前的元素的个数是否达到了容量的大小，如果达到了容量大小，就需要扩容了，怎么扩容？调用grow()方法，grow()方法实际上就是使用Arrays.copyOf()根据elementData复制出具有相同元素并增加相应的容量的数组赋值给elementData完成扩容。关键是怎么扩容？过程在newCapacity()，首先计算新容量，扩容因数是0.5</p>
+<p>int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
+<p>当新容量比最小容量小或相等的时候，就用最小容量大小，因为此时ArrayList中的元素并不多，也就意味着前期ArrayList通过时间的消耗来换取空间的减少，元素不多说明不需要太大的容量，如果元素不多就进行大扩容必然是不合适的，因此开发者考虑到元素不多的情况的没必要进行大扩容，只需要最小扩容即可。但是每次添加元素的时候会导致扩容次数增加，因此必然会增加了时间的消耗。</p>
+<p>关于elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA的判断，请参考本文的<a href="#DEFAULT_CAPACITY">DEFAULT_CAPACITY</a></p>
+<p>当新容量比最小容量大的时候，就返回新容量的大小，但是新容量的大小不能比最大容量大，MAX_ARRAY_SIZE定义了最大容量</p>
+<pre><code class="java">/**
+     * The maximum size of array to allocate (unless necessary).
+     * Some VMs reserve some header words in an array.
+     * Attempts to allocate larger arrays may result in
+     * OutOfMemoryError: Requested array size exceeds VM limit
+     */
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+</code></pre>
+<p>如果新容量比最大容量大，那么还会有一层保障机制，因为我们可以看到MAX_ARRAY_SIZE其实是减8了，这个时候，利用最小容量扩容，实际就是增大8个容量</p>
+<pre><code class="java">private static int hugeCapacity(int minCapacity) {
+        if (minCapacity &lt; 0) // overflow
+            throw new OutOfMemoryError();
+        return (minCapacity &gt; MAX_ARRAY_SIZE)
+            ? Integer.MAX_VALUE
+            : MAX_ARRAY_SIZE;
+    }
+</code></pre>
+<p>如果达到了最大容量，再添加元素的时候，无疑int的值的最高位会置1，表示一个负数，那么在扩容的时候就会抛出OutOfMemoryError。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+        <tag>Java集合类</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>使用markdown画流程图</title>
+    <url>/2019/03/10/%E4%BD%BF%E7%94%A8markdown%E7%94%BB%E6%B5%81%E7%A8%8B%E5%9B%BE/</url>
+    <content><![CDATA[<p>市面上有很多画流程图的软件，比如<a href="https://www.processon.com" target="_blank" rel="noopener">ProcessOn</a>, <a href="https://www.visual-paradigm.com/" target="_blank" rel="noopener">VisualParadigm</a>，这些软件都可以非常直观快速的构建一个流程图，但常常需要打开一个网页或一个软件而不够便捷，如果是一些比较复杂的流程描述我会使用以上两个软件，以上的两个软件都是通过图形拖拽的方式创建流程图，markdown提供一种文本描述的方式来创建流程图，这样不需要离开编辑的界面即可完成一个流程图，岂不妙哉？</p>
+<p>使用markdown来完成流程图需要注意编辑器支不支持画流程图，我使用的是typora是支持画流程图的，如果大家在自己的编辑器上画不出流程图，请查阅该编辑器的特性是否支持流程图。</p>
+<p>其实流程图的创建是基于flowchart.js的，编辑器是否能够支持画流程图本质上指的是否支持flowchart.js。</p>
+<h2 id="流程图的关键节点"><a href="#流程图的关键节点" class="headerlink" title="流程图的关键节点"></a>流程图的关键节点</h2><h3 id="1-开始节点"><a href="#1-开始节点" class="headerlink" title="1. 开始节点"></a>1. 开始节点</h3><p>开始节点表示流程的开始，每个算法流程都有且仅有一个入口，使用圆角矩形表示，在markdown中使用<strong>start</strong>关键字表示。</p>
+<h3 id="2-结束节点"><a href="#2-结束节点" class="headerlink" title="2. 结束节点"></a>2. 结束节点</h3><p>结束节点表示流程的结束，每个算法流程都需要指定结束节点，使用圆角矩形表示，在markdown中使用<strong>end</strong>关键字表示。</p>
+<h3 id="3-判断节点"><a href="#3-判断节点" class="headerlink" title="3. 判断节点"></a>3. 判断节点</h3><p>判断节点用于分支结构，表示流程中的逻辑判断，有两个出口，[yes] or [no]，使用棱形表示，在markdown中使用<strong>condition</strong>关键字表示。</p>
+<h3 id="4-操作节点"><a href="#4-操作节点" class="headerlink" title="4. 操作节点"></a>4. 操作节点</h3><p>操作节点的操作对象主要是数据，数据的变更和声明等等，使用直角矩形表示，在mardkwon中使用<strong>operation</strong>关键字表示。</p>
+<h3 id="5-输入输出节点"><a href="#5-输入输出节点" class="headerlink" title="5. 输入输出节点"></a>5. 输入输出节点</h3><p>数据的输入和输出都使用平行四边形表示，在markdown中使用<strong>inputoutput</strong>关键字表示。</p>
+<h2 id="在markdown如何嵌入流程图"><a href="#在markdown如何嵌入流程图" class="headerlink" title="在markdown如何嵌入流程图"></a>在markdown如何嵌入流程图</h2><p>在markdown中嵌入流程图和在markdown中嵌入代码块是一样的，如下嵌入一段java代码：</p>
+<blockquote>
+<p>``` java</p>
+<p>// some codes here.</p>
+<p>```</p>
+</blockquote>
+<p>同上，要嵌入流程图可以像这样：</p>
+<blockquote>
+<p>``` flow</p>
+<p>// describe your flowchart</p>
+<p>```</p>
+</blockquote>
+<h2 id="实战"><a href="#实战" class="headerlink" title="实战"></a>实战</h2><p>使用流程图描述使用水壶烧水的过程：</p>
+<pre><code>st=&gt;start: 开始
+e=&gt;end: 结束
+io1=&gt;inputoutput: 输入水量
+con1=&gt;condition: 校验水量是否通过
+op1=&gt;operation: 烧水并等待
+io2=&gt;inputoutput: 提示错误
+st-&gt;io1-&gt;con1
+con1(yes)-&gt;op1
+con1(no)-&gt;io2(right)-&gt;io1
+op1-&gt;e
+</code></pre><div id="flowchart-0" class="flow-chart"></div>
+
+<p>大家看到的“st=&gt;start: 开始”这类的语法，表示定义一个标识符，类似编程语言里的变量定义，具体的格式是这样的：</p>
+<blockquote>
+<p>标识符=&gt;关键字: 描述</p>
+</blockquote>
+<p>关键字是上面提到的几种流程图关键字，start, end, operation, condition, inputoutput, 我只是提了几种常用的，如何不符合读者的需求，各位可以上网自行查阅其他的图形使用的关键字。</p>
+<p>所有的标识符使用“-&gt;”连接起来，到此流程图就画出来了。连接的时候还可以指定连接位置，比如io2我使用了io2(right)，表示从右边发起连接。</p>
+<p><script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.2.7/raphael.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/flowchart/1.6.5/flowchart.min.js"></script><textarea id="flowchart-0-code" style="display: none">st=>start: 开始
+e=>end: 结束
+io1=>inputoutput: 输入水量
+con1=>condition: 校验水量是否通过
+op1=>operation: 烧水并等待
+io2=>inputoutput: 提示错误
+st->io1->con1
+con1(yes)->op1
+con1(no)->io2(right)->io1
+op1->e</textarea><textarea id="flowchart-0-options" style="display: none">{"scale":1,"line-width":2,"line-length":50,"text-margin":10,"font-size":12}</textarea><script>  var code = document.getElementById("flowchart-0-code").value;  var options = JSON.parse(decodeURIComponent(document.getElementById("flowchart-0-options").value));  var diagram = flowchart.parse(code);  diagram.drawSVG("flowchart-0", options);</script></p>
+]]></content>
+      <tags>
+        <tag>funny</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>单例模式的四种实现</title>
+    <url>/2018/04/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%9B%9B%E7%A7%8D%E5%AE%9E%E7%8E%B0/</url>
+    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>单例模式能保证我们获取类的实例的时候，只能获取唯一的一个实例，这个实例是常驻内存的。</p>
+<h2 id="1-懒汉式"><a href="#1-懒汉式" class="headerlink" title="1. 懒汉式"></a>1. 懒汉式</h2><pre><code class="java">public class LazySingleton {
+
+    private static LazySingleton singleton;
+
+    private LazySingleton(){}
+
+    public static synchronized LazySingleton getInstance(){
+        if (singleton == null) {
+            singleton = new LazySingleton();
+        }
+        return singleton;
+    }
+}
+</code></pre>
+<p>懒汉式的特点就是在获取实例的时候才进行实例化，有懒加载的意思。在获取实例的时候使用synchronized关键字是为了保证线程安全。但是在获取实例的方法getInstance()中为了保证线程安全，对整个方法加锁，锁的粒度较大。</p>
+<h2 id="2-饿汉式"><a href="#2-饿汉式" class="headerlink" title="2. 饿汉式"></a>2. 饿汉式</h2><pre><code class="java">public class HungerSingleton {
+
+    private static final HungerSingleton SINGLETON = new HungerSingleton();
+
+    private HungerSingleton(){}
+
+    public static HungerSingleton getInstance(){
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>饿汉式会在类加载的时候进行初始化，这里因为该实例是不可变的，因此不存在线程不安全的问题。但是有个问题要注意到，就是容易占用额外的空间，原因是非需要时就创建了该实例。</p>
+<h2 id="3-双重检测锁"><a href="#3-双重检测锁" class="headerlink" title="3. 双重检测锁"></a>3. 双重检测锁</h2><pre><code class="java">public class DoubleCheckSingleton {
+
+    private static volatile DoubleCheckSingleton singleton;
+
+    private DoubleCheckSingleton(){}
+
+    public static DoubleCheckSingleton getInstance(){
+        if(singleton == null){
+            synchronized(DoubleCheckSingleton.class){
+                if(singleton == null){
+                    singleton = new DoubleCheckSingleton();
+                }
+            }
+        }
+        return singleton;
+    }
+
+}
+</code></pre>
+<p>在高并发的情况下，为了保证线程安全，不得不对getInstance()方法加锁，这里使用了双重检测的方式，先检测singleton是否为空，再进行加锁，然后在判断实singleton是否为空，如果为空再实例化。举个例子，有线程A和线程B同时获取DoubleCheckSingleton的实例，有几种情况</p>
+<p>如果线程A经过第一层检测之后，对该类的class实例加锁，然后经过第二层检测，随后实例化对象。此时线程B才去进行第一层检测，直接返回该实例。</p>
+<p>如果线程A经过第一层检测之后，线程B也经过的第一层检测，线程A对该类的class实例加锁，然后经过第二层检测，实例化对象。线程B因为无法获取锁而阻塞，当线程A退出synchronized代码块之后释放锁，线程B对该类的class实例加锁，经过第二层判断，此时singleton非空，因此退出该代码块返回singleton的实例。</p>
+<p>上述的线程A换做线程B，线程B换做线程A，一样的分析过程。</p>
+<p>有同学会注意到，singleton是被volatile修饰的，这里为什么要使用volatile修饰呢？网上说是为了防止jvm指令重排序，在线程A中，因为在实例化的过程中是非原子操作，jvm有可能会先将singleton的引用指向内存某地址，但是该地址空间中的初始化过程还没有完成，此时线程B在其他地方使用该实例就会出现异常。但是本人也有疑点，在《深入理解Java虚拟机》一书中提到，synchronized保证了原子性，可见性和防止指令重排序，何来非原子操作，何来指令重排序？本人也写过相关的实验，并没有发现线程不安全的情况。但本人才疏学浅，可能理解有误，希望各位同学指教，可能在某些场景下真的会发生线程不安全的情况。</p>
+<h2 id="4-枚举"><a href="#4-枚举" class="headerlink" title="4. 枚举"></a>4. 枚举</h2><pre><code class="java">public enum EnumSingleton {
+    ENUM_SINGLETON;
+
+    private EnumSingletonClazz enumSingletonClazz;
+
+    EnumSingleton(){
+        enumSingletonClazz = new EnumSingletonClazz();
+    }
+
+    public EnumSingletonClazz getInstance(){
+        return enumSingletonClazz;
+    }
+}
+</code></pre>
+<p>枚举中的每个元素都是public static final的，而且枚举类的构造方法也是私有的，我们在调用枚举实例的时候会枚举元素会被实例化，因为枚举元素是public static final的，因此枚举实例只有一个，在枚举元素实例化的时候我们将我们要实现单例的类也实例化，从而实现单例。在《Effective Java》一书中推荐使用这种方式。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java并发编程：volatile关键字</title>
+    <url>/2018/03/29/Java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%EF%BC%9Avolatile%E5%85%B3%E9%94%AE%E5%AD%97/</url>
+    <content><![CDATA[<h2 id="volatile关键字"><a href="#volatile关键字" class="headerlink" title="volatile关键字"></a>volatile关键字</h2><p>volatile这个关键字可能很多朋友都听说过，或许也都用过。在Java 5之前，它是一个备受争议的关键字，因为在程序中使用它往往会导致出人意料的结果。在Java 5之后，volatile关键字才得以重获生机。volatile关键字虽然从字面上理解起来比较简单，但是要用好不是一件容易的事情。由于volatile关键字是与Java的内存模型有关的，因此在讲述volatile关键之前，我们先来了解一下与内存模型相关的概念和知识，然后分析了volatile关键字的实现原理，最后给出了几个使用volatile关键字的场景。</p>
+<h2 id="内存模型的相关概念"><a href="#内存模型的相关概念" class="headerlink" title="内存模型的相关概念"></a>内存模型的相关概念</h2><p>大家都知道，计算机在执行程序时，每条指令都是在CPU中执行的，而执行指令过程中，势必涉及到数据的读取和写入。由于程序运行过程中的临时数据是存放在主存（物理内存）当中的，这时就存在一个问题，由于CPU执行速度很快，而从内存读取数据和向内存写入数据的过程跟CPU执行指令的速度比起来要慢的多，因此如果任何时候对数据的操作都要通过和内存的交互来进行，会大大降低指令执行的速度。因此在CPU里面就有了高速缓存。</p>
+<p>也就是，当程序在运行过程中，会将运算需要的数据从主存复制一份到CPU的高速缓存当中，那么CPU进行计算时就可以直接从它的高速缓存读取数据和向其中写入数据，当运算结束之后，再将高速缓存中的数据刷新到主存当中。举个简单的例子，比如下面的这段代码：</p>
+<pre><code class="java">i = i + 1;
+</code></pre>
+<p>当线程执行这个语句时，会先从主存当中读取i的值，然后复制一份到高速缓存当中，然后CPU执行指令对i进行加1操作，然后将数据写入高速缓存，最后将高速缓存中i最新的值刷新到主存当中。</p>
+<p>这个代码在单线程中运行是没有任何问题的，但是在多线程中运行就会有问题了。在多核CPU中，每条线程可能运行于不同的CPU中，因此每个线程运行时有自己的高速缓存（对单核CPU来说，其实也会出现这种问题，只不过是以线程调度的形式来分别执行的）。本文我们以多核CPU为例。</p>
+<p>比如同时有2个线程执行这段代码，假如初始时i的值为0，那么我们希望两个线程执行完之后i的值变为2。但是事实会是这样吗？</p>
+<p>可能存在下面一种情况：初始时，两个线程分别读取i的值存入各自所在的CPU的高速缓存当中，然后线程1进行加1操作，然后把i的最新值1写入到内存。此时线程2的高速缓存当中i的值还是0，进行加1操作之后，i的值为1，然后线程2把i的值写入内存。</p>
+<p>最终结果i的值是1，而不是2。这就是著名的缓存一致性问题。通常称这种被多个线程访问的变量为共享变量。</p>
+<p>也就是说，如果一个变量在多个CPU中都存在缓存（一般在多线程编程时才会出现），那么就可能存在缓存不一致的问题。</p>
+<p>为了解决缓存不一致性问题，通常来说有以下2种解决方法：</p>
+<p>1）通过在总线加LOCK#锁的方式</p>
+<p>2）通过缓存一致性协议</p>
+<p>这2种方式都是硬件层面上提供的方式。</p>
+<p>在早期的CPU当中，是通过在总线上加LOCK#锁的形式来解决缓存不一致的问题。因为CPU和其他部件进行通信都是通过总线来进行的，如果对总线加LOCK#锁的话，也就是说阻塞了其他CPU对其他部件访问（如内存），从而使得只能有一个CPU能使用这个变量的内存。比如上面例子中 如果一个线程在执行 i = i +1，如果在执行这段代码的过程中，在总线上发出了LCOK#锁的信号，那么只有等待这段代码完全执行完毕之后，其他CPU才能从变量i所在的内存读取变量，然后进行相应的操作。这样就解决了缓存不一致的问题。</p>
+<p>但是上面的方式会有一个问题，由于在锁住总线期间，其他CPU无法访问内存，导致效率低下。</p>
+<p>所以就出现了缓存一致性协议。最出名的就是Intel 的MESI协议，MESI协议保证了每个缓存中使用的共享变量的副本是一致的。它核心的思想是：当CPU写数据时，如果发现操作的变量是共享变量，即在其他CPU中也存在该变量的副本，会发出信号通知其他CPU将该变量的缓存行置为无效状态，因此当其他CPU需要读取这个变量时，发现自己缓存中缓存该变量的缓存行是无效的，那么它就会从内存重新读取。</p>
+<p><img src="https://images0.cnblogs.com/blog/288799/201408/212219343783699.jpg" alt="img"></p>
+<h2 id="并发编程中的三个概念"><a href="#并发编程中的三个概念" class="headerlink" title="并发编程中的三个概念"></a>并发编程中的三个概念</h2><p>在并发编程中，我们通常会遇到以下三个问题：原子性问题，可见性问题，有序性问题。我们先看具体看一下这三个概念：</p>
+<h3 id="原子性"><a href="#原子性" class="headerlink" title="原子性"></a>原子性</h3><p>原子性：即一个操作或者多个操作 要么全部执行并且执行的过程不会被任何因素打断，要么就都不执行。</p>
+<p>一个很经典的例子就是银行账户转账问题：</p>
+<p>比如从账户A向账户B转1000元，那么必然包括2个操作：从账户A减去1000元，往账户B加上1000元。</p>
+<p>试想一下，如果这2个操作不具备原子性，会造成什么样的后果。假如从账户A减去1000元之后，操作突然中止。然后又从B取出了500元，取出500元之后，再执行 往账户B加上1000元 的操作。这样就会导致账户A虽然减去了1000元，但是账户B没有收到这个转过来的1000元。</p>
+<p>所以这2个操作必须要具备原子性才能保证不出现一些意外的问题。</p>
+<p>同样地反映到并发编程中会出现什么结果呢？</p>
+<p>举个最简单的例子，大家想一下假如为一个32位的变量赋值过程不具备原子性的话，会发生什么后果？</p>
+<pre><code class="java">i = 9;
+</code></pre>
+<p>假若一个线程执行到这个语句时，我暂且假设为一个32位的变量赋值包括两个过程：为低16位赋值，为高16位赋值。</p>
+<p>那么就可能发生一种情况：当将低16位数值写入之后，突然被中断，而此时又有一个线程去读取i的值，那么读取到的就是错误的数据。</p>
+<h3 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h3><p>可见性是指当多个线程访问同一个变量时，一个线程修改了这个变量的值，其他线程能够立即看得到修改的值。</p>
+<p>举个简单的例子，看下面这段代码：</p>
+<pre><code class="java">//线程1执行的代码
+int i = 0;
+i = 10;
+//线程2执行的代码
+j = i;
+</code></pre>
+<p>假若执行线程1的是CPU1，执行线程2的是CPU2。由上面的分析可知，当线程1执行 i =10这句时，会先把i的初始值加载到CPU1的高速缓存中，然后赋值为10，那么在CPU1的高速缓存当中i的值变为10了，却没有立即写入到主存当中。</p>
+<p>此时线程2执行 j = i，它会先去主存读取i的值并加载到CPU2的缓存当中，注意此时内存当中i的值还是0，那么就会使得j的值为0，而不是10.</p>
+<p>这就是可见性问题，线程1对变量i修改了之后，线程2没有立即看到线程1修改的值。</p>
+<h3 id="有序性"><a href="#有序性" class="headerlink" title="有序性"></a>有序性</h3><p>有序性：即程序执行的顺序按照代码的先后顺序执行。举个简单的例子，看下面这段代码：</p>
+<pre><code class="java">int i = 0;              
+boolean flag = false;
+i = 1;                //语句1  
+flag = true;          //语句2
+</code></pre>
+<p>上面代码定义了一个int型变量，定义了一个boolean类型变量，然后分别对两个变量进行赋值操作。从代码顺序上看，语句1是在语句2前面的，那么JVM在真正执行这段代码的时候会保证语句1一定会在语句2前面执行吗？不一定，为什么呢？这里可能会发生指令重排序（Instruction Reorder）。</p>
+<p>下面解释一下什么是指令重排序，一般来说，处理器为了提高程序运行效率，可能会对输入代码进行优化，它不保证程序中各个语句的执行先后顺序同代码中的顺序一致，但是它会保证程序最终执行结果和代码顺序执行的结果是一致的。</p>
+<p>比如上面的代码中，语句1和语句2谁先执行对最终的程序结果并没有影响，那么就有可能在执行过程中，语句2先执行而语句1后执行。</p>
+<p>但是要注意，虽然处理器会对指令进行重排序，但是它会保证程序最终结果会和代码顺序执行结果相同，那么它靠什么保证的呢？再看下面一个例子：</p>
+<pre><code class="java">int a = 10;    //语句1
+int r = 2;    //语句2
+a = a + 3;    //语句3
+r = a*a;     //语句4
+</code></pre>
+<p>语句2–&gt;语句1–&gt;语句4–&gt;语句3</p>
+<p>那么可不可能是这个执行顺序呢： 语句2–&gt;语句1–&gt;语句4–&gt;语句3</p>
+<p>不可能，因为处理器在进行重排序时是会考虑指令之间的数据依赖性，如果一个指令Instruction 2必须用到Instruction 1的结果，那么处理器会保证Instruction 1会在Instruction 2之前执行。</p>
+<p>虽然重排序不会影响单个线程内程序执行的结果，但是多线程呢？下面看一个例子：</p>
+<pre><code class="java">//线程1:
+context = loadContext();   //语句1
+inited = true;             //语句2
+//线程2:
+while(!inited ){
+  sleep()
+}
+doSomethingwithconfig(context);
+</code></pre>
+<p>上面代码中，由于语句1和语句2没有数据依赖性，因此可能会被重排序。假如发生了重排序，在线程1执行过程中先执行语句2，而此是线程2会以为初始化工作已经完成，那么就会跳出while循环，去执行doSomethingwithconfig(context)方法，而此时context并没有被初始化，就会导致程序出错。</p>
+<p>从上面可以看出，指令重排序不会影响单个线程的执行，但是会影响到线程并发执行的正确性。</p>
+<p>也就是说，要想并发程序正确地执行，必须要保证原子性、可见性以及有序性。只要有一个没有被保证，就有可能会导致程序运行不正确。</p>
+<h2 id="Java内存模型"><a href="#Java内存模型" class="headerlink" title="Java内存模型"></a>Java内存模型</h2><p>在前面谈到了一些关于内存模型以及并发编程中可能会出现的一些问题。下面我们来看一下Java内存模型，研究一下Java内存模型为我们提供了哪些保证以及在java中提供了哪些方法和机制来让我们在进行多线程编程时能够保证程序执行的正确性。</p>
+<p>在Java虚拟机规范中试图定义一种Java内存模型（Java Memory Model，JMM）来屏蔽各个硬件平台和操作系统的内存访问差异，以实现让Java程序在各种平台下都能达到一致的内存访问效果。那么Java内存模型规定了哪些东西呢，它定义了程序中变量的访问规则，往大一点说是定义了程序执行的次序。注意，为了获得较好的执行性能，Java内存模型并没有限制执行引擎使用处理器的寄存器或者高速缓存来提升指令执行速度，也没有限制编译器对指令进行重排序。也就是说，在java内存模型中，也会存在缓存一致性问题和指令重排序的问题。</p>
+<p>Java内存模型规定所有的变量都是存在主存当中（类似于前面说的物理内存），每个线程都有自己的工作内存（类似于前面的高速缓存）。线程对变量的所有操作都必须在工作内存中进行，而不能直接对主存进行操作。并且每个线程不能访问其他线程的工作内存。</p>
+<p>举个简单的例子：在java中，执行下面这个语句：</p>
+<pre><code class="java">i = 10;
+</code></pre>
+<p>执行线程必须先在自己的工作线程中对变量i所在的缓存行进行赋值操作，然后再写入主存当中。而不是直接将数值10写入主存当中。</p>
+<p>那么Java语言 本身对 原子性、可见性以及有序性提供了哪些保证呢？</p>
+<h3 id="原子性-1"><a href="#原子性-1" class="headerlink" title="原子性"></a>原子性</h3><p>在Java中，对基本数据类型的变量的读取和赋值操作是原子性操作，即这些操作是不可被中断的，要么执行，要么不执行。</p>
+<p>上面一句话虽然看起来简单，但是理解起来并不是那么容易。看下面一个例子i：</p>
+<p>请分析以下哪些操作是原子性操作：</p>
+<pre><code class="java">x = 10;         //语句1
+y = x;         //语句2
+x++;           //语句3
+x = x + 1;     //语句4
+</code></pre>
+<p>咋一看，有些朋友可能会说上面的4个语句中的操作都是原子性操作。其实只有语句1是原子性操作，其他三个语句都不是原子性操作。</p>
+<p>语句1是直接将数值10赋值给x，也就是说线程执行这个语句的会直接将数值10写入到工作内存中。</p>
+<p>语句2实际上包含2个操作，它先要去读取x的值，再将x的值写入工作内存，虽然读取x的值以及 将x的值写入工作内存 这2个操作都是原子性操作，但是合起来就不是原子性操作了。</p>
+<p>同样的，x++和 x = x+1包括3个操作：读取x的值，进行加1操作，写入新的值。</p>
+<p>所以上面4个语句只有语句1的操作具备原子性。</p>
+<p>也就是说，只有简单的读取、赋值（而且必须是将数字赋值给某个变量，变量之间的相互赋值不是原子操作）才是原子操作。</p>
+<p>不过这里有一点需要注意：在32位平台下，对64位数据的读取和赋值是需要通过两个操作来完成的，不能保证其原子性。但是好像在最新的JDK中，JVM已经保证对64位数据的读取和赋值也是原子性操作了。</p>
+<p>从上面可以看出，Java内存模型只保证了基本读取和赋值是原子性操作，如果要实现更大范围操作的原子性，可以通过synchronized和Lock来实现。由于synchronized和Lock能够保证任一时刻只有一个线程执行该代码块，那么自然就不存在原子性问题了，从而保证了原子性。</p>
+<h3 id="可见性-1"><a href="#可见性-1" class="headerlink" title="可见性"></a>可见性</h3><p>对于可见性，Java提供了volatile关键字来保证可见性。</p>
+<p>当一个共享变量被volatile修饰时，它会保证修改的值会立即被更新到主存，当有其他线程需要读取时，它会去内存中读取新值。</p>
+<p>而普通的共享变量不能保证可见性，因为普通共享变量被修改之后，什么时候被写入主存是不确定的，当其他线程去读取时，此时内存中可能还是原来的旧值，因此无法保证可见性。</p>
+<p>另外，通过synchronized和Lock也能够保证可见性，synchronized和Lock能保证同一时刻只有一个线程获取锁然后执行同步代码，并且在释放锁之前会将对变量的修改刷新到主存当中。因此可以保证可见性。</p>
+<h3 id="有序性-1"><a href="#有序性-1" class="headerlink" title="有序性"></a>有序性</h3><p>在Java内存模型中，允许编译器和处理器对指令进行重排序，但是重排序过程不会影响到单线程程序的执行，却会影响到多线程并发执行的正确性。</p>
+<p>在Java里面，可以通过volatile关键字来保证一定的“有序性”（具体原理在下一节讲述）。另外可以通过synchronized和Lock来保证有序性，很显然，synchronized和Lock保证每个时刻是有一个线程执行同步代码，相当于是让线程顺序执行同步代码，自然就保证了有序性。</p>
+<p>另外，Java内存模型具备一些先天的“有序性”，即不需要通过任何手段就能够得到保证的有序性，这个通常也称为 happens-before 原则。如果两个操作的执行次序无法从happens-before原则推导出来，那么它们就不能保证它们的有序性，虚拟机可以随意地对它们进行重排序。</p>
+<p>下面就来具体介绍下happens-before原则（先行发生原则）：</p>
+<ul>
+<li>程序次序规则：一个线程内，按照代码顺序，书写在前面的操作先行发生于书写在后面的操作</li>
+<li>锁定规则：一个unLock操作先行发生于后面对同一个锁额lock操作</li>
+<li>volatile变量规则：对一个变量的写操作先行发生于后面对这个变量的读操作</li>
+<li>传递规则：如果操作A先行发生于操作B，而操作B又先行发生于操作C，则可以得出操作A先行发生于操作C</li>
+<li>线程启动规则：Thread对象的start()方法先行发生于此线程的每个一个动作</li>
+<li>线程中断规则：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生</li>
+<li>线程终结规则：线程中所有的操作都先行发生于线程的终止检测，我们可以通过Thread.join()方法结束、Thread.isAlive()的返回值手段检测到线程已经终止执行</li>
+<li>对象终结规则：一个对象的初始化完成先行发生于他的finalize()方法的开始</li>
+</ul>
+<p>这8条原则摘自《深入理解Java虚拟机》。</p>
+<p>这8条规则中，前4条规则是比较重要的，后4条规则都是显而易见的。</p>
+<p>下面我们来解释一下前4条规则：</p>
+<p>对于程序次序规则来说，我的理解就是一段程序代码的执行在单个线程中看起来是有序的。注意，虽然这条规则中提到“书写在前面的操作先行发生于书写在后面的操作”，这个应该是程序看起来执行的顺序是按照代码顺序执行的，因为虚拟机可能会对程序代码进行指令重排序。虽然进行重排序，但是最终执行的结果是与程序顺序执行的结果一致的，它只会对不存在数据依赖性的指令进行重排序。因此，在单个线程中，程序执行看起来是有序执行的，这一点要注意理解。事实上，这个规则是用来保证程序在单线程中执行结果的正确性，但无法保证程序在多线程中执行的正确性。</p>
+<p>第二条规则也比较容易理解，也就是说无论在单线程中还是多线程中，同一个锁如果出于被锁定的状态，那么必须先对锁进行了释放操作，后面才能继续进行lock操作。</p>
+<p>第三条规则是一条比较重要的规则，也是后文将要重点讲述的内容。直观地解释就是，如果一个线程先去写一个变量，然后一个线程去进行读取，那么写入操作肯定会先行发生于读操作。</p>
+<p>第四条规则实际上就是体现happens-before原则具备传递性。</p>
+<h2 id="深入剖析volatile关键字"><a href="#深入剖析volatile关键字" class="headerlink" title="深入剖析volatile关键字"></a>深入剖析volatile关键字</h2><p>在前面讲述了很多东西，其实都是为讲述volatile关键字作铺垫，那么接下来我们就进入主题。</p>
+<h3 id="volatile关键字的三层语义："><a href="#volatile关键字的三层语义：" class="headerlink" title="volatile关键字的三层语义："></a>volatile关键字的三层语义：</h3><p>一旦一个共享变量（类的成员变量、类的静态成员变量）被volatile修饰之后，那么就具备了两层语义：</p>
+<p>1）保证了不同线程对这个变量进行操作时的可见性，即一个线程修改了某个变量的值，这新值对其他线程来说是立即可见的。</p>
+<p>2）禁止进行指令重排序。</p>
+<p>先看一段代码，假如线程1先执行，线程2后执行：</p>
+<pre><code class="java">//线程1
+boolean stop = false;
+while(!stop){
+    doSomething();
+}
+//线程2
+stop = true;
+</code></pre>
+<p>这段代码是很典型的一段代码，很多人在中断线程时可能都会采用这种标记办法。但是事实上，这段代码会完全运行正确么？即一定会将线程中断么？不一定，也许在大多数时候，这个代码能够把线程中断，但是也有可能会导致无法中断线程（虽然这个可能性很小，但是只要一旦发生这种情况就会造成死循环了）。</p>
+<p>下面解释一下这段代码为何有可能导致无法中断线程。在前面已经解释过，每个线程在运行过程中都有自己的工作内存，那么线程1在运行的时候，会将stop变量的值拷贝一份放在自己的工作内存当中。</p>
+<p>那么当线程2更改了stop变量的值之后，但是还没来得及写入主存当中，线程2转去做其他事情了，那么线程1由于不知道线程2对stop变量的更改，因此还会一直循环下去。</p>
+<p>但是用volatile修饰之后就变得不一样了：</p>
+<p>第一：使用volatile关键字会强制将修改的值立即写入主存；</p>
+<p>第二：使用volatile关键字的话，当线程2进行修改时，会导致线程1的工作内存中缓存变量stop的缓存行无效（反映到硬件层的话，就是CPU的L1或者L2缓存中对应的缓存行无效）；</p>
+<p>第三：由于线程1的工作内存中缓存变量stop的缓存行无效，所以线程1再次读取变量stop的值时会去主存读取。</p>
+<p>那么在线程2修改stop值时（当然这里包括2个操作，修改线程2工作内存中的值，然后将修改后的值写入内存），会使得线程1的工作内存中缓存变量stop的缓存行无效，然后线程1读取时，发现自己的缓存行无效，它会等待缓存行对应的主存地址被更新之后，然后去对应的主存读取最新的值。</p>
+<p>那么线程1读取到的就是最新的正确的值。</p>
+<h3 id="volatile保证原子性吗？"><a href="#volatile保证原子性吗？" class="headerlink" title="volatile保证原子性吗？"></a>volatile保证原子性吗？</h3><p>从上面知道volatile关键字保证了操作的可见性，但是volatile能保证对变量的操作是原子性吗？</p>
+<p>下面看一个例子：</p>
+<pre><code class="java">public class Test {
+    public volatile int inc = 0;
+
+    public void increase() {
+        inc++;
+    }
+
+    public static void main(String[] args) {
+        final Test test = new Test();
+        for(int i=0;i&lt;10;i++){
+            new Thread(){
+                public void run() {
+                    for(int j=0;j&lt;1000;j++)
+                        test.increase();
+                };
+            }.start();
+        }
+
+        while(Thread.activeCount()&gt;1)  //保证前面的线程都执行完
+            Thread.yield();
+        System.out.println(test.inc);
+    }
+}
+</code></pre>
+<p>大家想一下这段程序的输出结果是多少？也许有些朋友认为是10000。但是事实上运行它会发现每次运行结果都不一致，都是一个小于10000的数字。</p>
+<p>可能有的朋友就会有疑问，不对啊，上面是对变量inc进行自增操作，由于volatile保证了可见性，那么在每个线程中对inc自增完之后，在其他线程中都能看到修改后的值啊，所以有10个线程分别进行了1000次操作，那么最终inc的值应该是1000*10=10000。</p>
+<p>这里面就有一个误区了，volatile关键字能保证可见性没有错，但是上面的程序错在没能保证原子性。可见性只能保证每次读取的是最新的值，但是volatile没办法保证对变量的操作的原子性。</p>
+<p>在前面已经提到过，自增操作是不具备原子性的，它包括读取变量的原始值、进行加1操作、写入工作内存。那么就是说自增操作的三个子操作可能会分割开执行，就有可能导致下面这种情况出现：</p>
+<p>假如某个时刻变量inc的值为10，</p>
+<p>线程1对变量进行自增操作，线程1先读取了变量inc的原始值，然后线程1被阻塞了；</p>
+<p>然后线程2对变量进行自增操作，线程2也去读取变量inc的原始值，由于线程1只是对变量inc进行读取操作，而没有对变量进行修改操作，所以不会导致线程2的工作内存中缓存变量inc的缓存行无效，所以线程2会直接去主存读取inc的值，发现inc的值时10，然后进行加1操作，并把11写入工作内存，最后写入主存。</p>
+<p>然后线程1接着进行加1操作，由于已经读取了inc的值，注意此时在线程1的工作内存中inc的值仍然为10，所以线程1对inc进行加1操作后inc的值为11，然后将11写入工作内存，最后写入主存。</p>
+<p>那么两个线程分别进行了一次自增操作后，inc只增加了1。</p>
+<p>解释到这里，可能有朋友会有疑问，不对啊，前面不是保证一个变量在修改volatile变量时，会让缓存行无效吗？然后其他线程去读就会读到新的值，对，这个没错。这个就是上面的happens-before规则中的volatile变量规则，但是要注意，线程1对变量进行读取操作之后，被阻塞了的话，并没有对inc值进行修改。然后虽然volatile能保证线程2对变量inc的值读取是从内存中读取的，但是线程1没有进行修改，所以线程2根本就不会看到修改的值。</p>
+<p>根源就在这里，自增操作不是原子性操作，而且volatile也无法保证对变量的任何操作都是原子性的。</p>
+<p>把上面的代码改成以下任何一种都可以达到效果：</p>
+<p>采用synchronized：</p>
+<pre><code class="java">public class Test {
+    public  int inc = 0;
+
+    public synchronized void increase() {
+        inc++;
+    }
+
+    public static void main(String[] args) {
+        final Test test = new Test();
+        for(int i=0;i&lt;10;i++){
+            new Thread(){
+                public void run() {
+                    for(int j=0;j&lt;1000;j++)
+                        test.increase();
+                };
+            }.start();
+        }
+
+        while(Thread.activeCount()&gt;1)  //保证前面的线程都执行完
+            Thread.yield();
+        System.out.println(test.inc);
+    }
+}
+</code></pre>
+<p>采用Lock：</p>
+<pre><code class="java">public class Test {
+    public  int inc = 0;
+    Lock lock = new ReentrantLock();
+
+    public  void increase() {
+        lock.lock();
+        try {
+            inc++;
+        } finally{
+            lock.unlock();
+        }
+    }
+
+    public static void main(String[] args) {
+        final Test test = new Test();
+        for(int i=0;i&lt;10;i++){
+            new Thread(){
+                public void run() {
+                    for(int j=0;j&lt;1000;j++)
+                        test.increase();
+                };
+            }.start();
+        }
+
+        while(Thread.activeCount()&gt;1)  //保证前面的线程都执行完
+            Thread.yield();
+        System.out.println(test.inc);
+    }
+}
+</code></pre>
+<p>采用AtomicInteger：</p>
+<pre><code class="java">public class Test {
+    public  AtomicInteger inc = new AtomicInteger();
+
+    public  void increase() {
+        inc.getAndIncrement();
+    }
+
+    public static void main(String[] args) {
+        final Test test = new Test();
+        for(int i=0;i&lt;10;i++){
+            new Thread(){
+                public void run() {
+                    for(int j=0;j&lt;1000;j++)
+                        test.increase();
+                };
+            }.start();
+        }
+
+        while(Thread.activeCount()&gt;1)  //保证前面的线程都执行完
+            Thread.yield();
+        System.out.println(test.inc);
+    }
+}
+</code></pre>
+<p>在java 1.5的java.util.concurrent.atomic包下提供了一些原子操作类，即对基本数据类型的 自增（加1操作），自减（减1操作）、以及加法操作（加一个数），减法操作（减一个数）进行了封装，保证这些操作是原子性操作。atomic是利用CAS来实现原子性操作的（Compare And Swap），CAS实际上是利用处理器提供的CMPXCHG指令实现的，而处理器执行CMPXCHG指令是一个原子性操作。</p>
+<h3 id="volatile能保证有序性吗？"><a href="#volatile能保证有序性吗？" class="headerlink" title="volatile能保证有序性吗？"></a>volatile能保证有序性吗？</h3><p>在前面提到volatile关键字能禁止指令重排序，所以volatile能在一定程度上保证有序性。</p>
+<p>volatile关键字禁止指令重排序有两层意思：</p>
+<p>1）当程序执行到volatile变量的读操作或者写操作时，在其前面的操作的更改肯定全部已经进行，且结果已经对后面的操作可见；在其后面的操作肯定还没有进行；</p>
+<p>2）在进行指令优化时，不能将在对volatile变量访问的语句放在其后面执行，也不能把volatile变量后面的语句放到其前面执行。</p>
+<p>可能上面说的比较绕，举个简单的例子：</p>
+<pre><code class="java">//x、y为非volatile变量
+//flag为volatile变量
+x = 2;        //语句1
+y = 0;        //语句2
+flag = true;  //语句3
+x = 4;         //语句4
+y = -1;       //语句5
+</code></pre>
+<p>由于flag变量为volatile变量，那么在进行指令重排序的过程的时候，不会将语句3放到语句1、语句2前面，也不会讲语句3放到语句4、语句5后面。但是要注意语句1和语句2的顺序、语句4和语句5的顺序是不作任何保证的。</p>
+<p>并且volatile关键字能保证，执行到语句3时，语句1和语句2必定是执行完毕了的，且语句1和语句2的执行结果对语句3、语句4、语句5是可见的。</p>
+<p>那么我们回到前面举的一个例子：</p>
+<pre><code class="java">//线程1:
+context = loadContext();   //语句1
+inited = true;             //语句2
+//线程2:
+while(!inited ){
+  sleep()
+}
+doSomethingwithconfig(context);
+</code></pre>
+<p>前面举这个例子的时候，提到有可能语句2会在语句1之前执行，那么久可能导致context还没被初始化，而线程2中就使用未初始化的context去进行操作，导致程序出错。</p>
+<p>这里如果用volatile关键字对inited变量进行修饰，就不会出现这种问题了，因为当执行到语句2时，必定能保证context已经初始化完毕。</p>
+<h3 id="volatile的原理和实现机制"><a href="#volatile的原理和实现机制" class="headerlink" title="volatile的原理和实现机制"></a>volatile的原理和实现机制</h3><p>前面讲述了源于volatile关键字的一些使用，下面我们来探讨一下volatile到底如何保证可见性和禁止指令重排序的。</p>
+<p>下面这段话摘自《深入理解Java虚拟机》：</p>
+<p>“观察加入volatile关键字和没有加入volatile关键字时所生成的汇编代码发现，加入volatile关键字时，会多出一个lock前缀指令”</p>
+<p>lock前缀指令实际上相当于一个内存屏障（也成内存栅栏），内存屏障会提供3个功能：</p>
+<p>1）它确保指令重排序时不会把其后面的指令排到内存屏障之前的位置，也不会把前面的指令排到内存屏障的后面；即在执行到内存屏障这句指令时，在它前面的操作已经全部完成；</p>
+<p>2）它会强制将对缓存的修改操作立即写入主存；</p>
+<p>3）如果是写操作，它会导致其他CPU中对应的缓存行无效。</p>
+<h2 id="使用volatile关键字的场景"><a href="#使用volatile关键字的场景" class="headerlink" title="使用volatile关键字的场景"></a>使用volatile关键字的场景</h2><p>synchronized关键字是防止多个线程同时执行一段代码，那么就会很影响程序执行效率，而volatile关键字在某些情况下性能要优于synchronized，但是要注意volatile关键字是无法替代synchronized关键字的，因为volatile关键字无法保证操作的原子性。通常来说，使用volatile必须具备以下2个条件：</p>
+<p>1）对变量的写操作不依赖于当前值</p>
+<p>2）该变量没有包含在具有其他变量的不变式中</p>
+<p>实际上，这些条件表明，可以被写入 volatile 变量的这些有效值独立于任何程序的状态，包括变量的当前状态。</p>
+<p>事实上，我的理解就是上面的2个条件需要保证操作是原子性操作，才能保证使用volatile关键字的程序在并发时能够正确执行。</p>
+<p>下面列举几个Java中使用volatile的几个场景。</p>
+<h3 id="状态标记量"><a href="#状态标记量" class="headerlink" title="状态标记量"></a>状态标记量</h3><pre><code class="java">volatile boolean flag = false;
+while(!flag){
+    doSomething();
+}
+public void setFlag() {
+    flag = true;
+}
+</code></pre>
+<pre><code class="java">volatile boolean inited = false;
+//线程1:
+context = loadContext();  
+inited = true;            
+//线程2:
+while(!inited ){
+sleep()
+}
+doSomethingwithconfig(context);
+</code></pre>
+<h3 id="double-check"><a href="#double-check" class="headerlink" title="double check"></a>double check</h3><pre><code class="java">class Singleton{
+    private volatile static Singleton instance = null;
+
+    private Singleton() {
+
+    }
+
+    public static Singleton getInstance() {
+        if(instance==null) {
+            synchronized (Singleton.class) {
+                if(instance==null)
+                    instance = new Singleton();
+            }
+        }
+        return instance;
+    }
+}
+</code></pre>
+<p>至于为何需要这么写请参考：</p>
+<p>《Java 中的双重检查（Double-Check）》</p>
+<p><a href="http://blog.csdn.net/dl88250/article/details/5439024" target="_blank" rel="noopener">http://blog.csdn.net/dl88250/article/details/5439024</a></p>
+<p><a href="http://www.iteye.com/topic/652440z" target="_blank" rel="noopener">http://www.iteye.com/topic/652440z</a></p>
+<hr>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li>《Java编程思想》</li>
+<li>《深入理解Java虚拟机》</li>
+<li><a href="http://jiangzhengjun.iteye.com/blog/652532" target="_blank" rel="noopener">http://jiangzhengjun.iteye.com/blog/652532</a></li>
+<li><a href="http://blog.sina.com.cn/s/blog_7bee8dd50101fu8n.html" target="_blank" rel="noopener">http://blog.sina.com.cn/s/blog_7bee8dd50101fu8n.html</a></li>
+<li><a href="http://ifeve.com/volatile/" target="_blank" rel="noopener">http://ifeve.com/volatile/</a></li>
+<li><a href="http://blog.csdn.net/ccit0519/article/details/11241403" target="_blank" rel="noopener">http://blog.csdn.net/ccit0519/article/details/11241403</a></li>
+<li><a href="http://blog.csdn.net/ns_code/article/details/17101369" target="_blank" rel="noopener">http://blog.csdn.net/ns_code/article/details/17101369</a></li>
+<li><a href="http://www.cnblogs.com/kevinwu/archive/2012/05/02/2479464.html" target="_blank" rel="noopener">http://www.cnblogs.com/kevinwu/archive/2012/05/02/2479464.html</a></li>
+<li><a href="http://www.cppblog.com/elva/archive/2011/01/21/139019.html" target="_blank" rel="noopener">http://www.cppblog.com/elva/archive/2011/01/21/139019.html</a></li>
+<li><a href="http://ifeve.com/volatile-array-visiblity/" target="_blank" rel="noopener">http://ifeve.com/volatile-array-visiblity/</a></li>
+<li><a href="http://www.bdqn.cn/news/201312/12579.shtml" target="_blank" rel="noopener">http://www.bdqn.cn/news/201312/12579.shtml</a></li>
+<li><a href="http://exploer.blog.51cto.com/7123589/1193399" target="_blank" rel="noopener">http://exploer.blog.51cto.com/7123589/1193399</a></li>
+<li><a href="http://www.cnblogs.com/Mainz/p/3556430.html" target="_blank" rel="noopener">http://www.cnblogs.com/Mainz/p/3556430.html</a></li>
+</ul>
+<p><em>转载：<a href="http://www.cnblogs.com/dolphin0520/p/3920373.html" target="_blank" rel="noopener">http://www.cnblogs.com/dolphin0520/p/3920373.html</a></em></p>
+<p>作者：海子</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>部署出现不必要告警的前因后果</title>
+    <url>/2018/10/27/%E9%83%A8%E7%BD%B2%E5%87%BA%E7%8E%B0%E4%B8%8D%E5%BF%85%E8%A6%81%E5%91%8A%E8%AD%A6%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/</url>
+    <content><![CDATA[<p>很多大公司都是可以利用自己的中间件监控自己应用的性能情况，异常记录和业务成功率等等，如果出现超出预想的监控值，可以通过手机短信，或是其他途径，例如钉钉，给出告警。</p>
+<p>现在的问题是，在业务进行迭代的过程里，需要对应用进行重新部署，在重新部署的过程中，容易导致应用不可用，当然，系统的可用性不可能在应用部署的时候被搞垮，在线上机器部署的时候是分批部署的，即使一批机器在部署，其他批次的机器也能提供服务。在阿里工作过的同学都知道，阿里内部的环境复杂性，为了保障线上稳定，需要对多个环境进行验证，一般来说有这几种，日常，预发，灰度，正式。无关紧要的我就不扯了，我们监控的一般是真实环境，而不是测试环境，在这几种环境中，灰度环境和正式环境就是真实的环境，只是灰度环境的机器比较少，因此，即使是分批部署保证可用性，但在灰度机器比较少的情况下，跟正式环境相比，如果其中有一台机器出问题，业务成功率会比正式环境低不少，因此很容易导致告警。</p>
+<p>那么这种告警有必要吗？这个跟系统应用有关，具体问题具体分析，因为我们的应用用到了阿里内部的DTS（分布式任务调度系统），DTS客户端启动之后会每隔一段时间进行一次任务调度，那么这里就容易出问题了，如果应用在部署的时候，进行任务调度会怎么样，在部署的时候一些被用到的bean还没有被加载，这个时候就会报错，导致成功率大大减低，从而会造成不必要的告警。</p>
+<p>出现这个问题的原因其实在于DTS客户端的启动时机比较靠前，在别的bean还没有加载完成时就已经启动了，解决这个问题的关键在于让DTS客户端的启动往后靠。首先看看DTS客户端这个bean的配置，原先这个bean使用了初始化方法，即在加载这个bean之后立即调用初始化方法，监听相应的端口，往DTS服务端发送心跳检测，表示我这台机器已经可以进行任务调度了，DTS服务端收到之后，就可以往这台机器进行任务调度了。 </p>
+<p>经过分析之后，很明显，我们需要关注两个时间点，一个是在部署的时候，Spring容器销毁时，还有Spring容器加载bean完成后，在这两个时间点要保证两个事情，一个是在Spring容器销毁的时候，DTS客户端是第一个被销毁的，一个是在Spring容器加载bean完成后，DTS客户端再启动。</p>
+<p>Spring提供以上两种Event，分别是ContextRefreshedEvent, ContextClosedEvent，ContextRefreshedEvent会在全部bean加载完成后触发，ContextClosedEvent会在容器内的bean销毁前触发。具体实现思路可以参考如下：</p>
+<pre><code class="java">public class FirstBean {
+
+    public void init() {
+        System.out.println(&quot;FirstBean initializing&quot;);
+    }
+
+    public void destroy() {
+        System.out.println(&quot;FirstBean destroying&quot;);
+    }
+
+}
+</code></pre>
+<pre><code class="java">public class SecondBean {
+
+    public void init() {
+        System.out.println(&quot;SecondBean initializing&quot;);
+    }
+
+    public void destroy() {
+        System.out.println(&quot;SecondBean destroying&quot;);
+    }
+
+}
+</code></pre>
+<pre><code class="java">@Component
+public class SpringApplicationLoadedListener implements ApplicationListener&lt;ContextRefreshedEvent&gt; {
+
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        ApplicationContext applicationContext = event.getApplicationContext();
+        if (applicationContext.getParent() == null) {
+            System.out.println(&quot;ApplicationContext loaded&quot;);
+        }
+    }
+
+}
+</code></pre>
+<pre><code class="java">@Component
+public class SpringApplicationClosingListener implements ApplicationListener&lt;ContextClosedEvent&gt; {
+
+    @Override
+    public void onApplicationEvent(ContextClosedEvent event) {
+        ApplicationContext applicationContext = event.getApplicationContext();
+        if (applicationContext.getParent() == null) {
+            System.out.println(&quot;ApplicationContext closing&quot;);
+        }
+    }
+
+}
+</code></pre>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+        <tag>Spring</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>自定义类加载器</title>
+    <url>/2018/04/14/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/</url>
+    <content><![CDATA[<h2 id="类加载机制中的加载阶段"><a href="#类加载机制中的加载阶段" class="headerlink" title="类加载机制中的加载阶段"></a>类加载机制中的加载阶段</h2><p>那么jvm在什么情况下处于加载阶段呢？</p>
+<p>在《深入理解Java虚拟机》是这样描述的</p>
+<blockquote>
+<p>这一点jvm规范并没有提供强制约束，而是交给jvm自己去实现。但是有一点，加载阶段一定是发生在初始化阶段之前的，执行初始化阶段的时机是明确规定的：</p>
+<ol>
+<li>遇到new、getstatic、putstatic或invokestatic这4条字节码指令时，如果类没有进行过初始化，则需要先触发其初始化。</li>
+<li>使用java.lang.reflect包的方法对类进行反射调用的时候，如果类没有进行过初始化，则需要先触发其初始化。</li>
+<li>当初始化一个类的时候，如果发现其父类还没有进行过初始化，则需要先触发其父类的初始化。</li>
+<li>当虚拟机启动时，用户需要指定一个要执行的主类(包含main()方法的那个类)，虚拟机会先初始化这个主类。</li>
+<li>当使用JDK1.7的动态语言支持时，如果一个java.lang.MethodHandle实例最后的解析结果REF_getStatic、REF_putStatic、REF_invokeStatic的方法句柄，并且这个方法句柄所对应的类没有进行过初始化，则需要先触发其初始化。</li>
+</ol>
+</blockquote>
+<p>也就是说，在以上这五种情况发生的时候，加载阶段在这之前已经完成了，那么也可以粗略地认为以上五种情况发生了类加载。</p>
+<h2 id="类与类加载器"><a href="#类与类加载器" class="headerlink" title="类与类加载器"></a>类与类加载器</h2><p>为了能够更好理解下面即将展开的内容，先来说一说类与类加载器的关系。请看下面代码</p>
+<pre><code class="java">Object firstObj = new Object();
+Object secondObj = new Object();
+System.out.println(firstObj.getClass() == secondObj.getClass());
+</code></pre>
+<p>相信同学们清楚，上面的输出结果是什么，大家可能会不假思索的认为上面的输出结果是ture。没错，上面的输出结果就是ture，哈哈。但是大家不要觉得这个问题很幼稚，在jvm的规范中定义两个类是否相等不是直接比较这两个类对象的引用是否一致，还要比较加载这两个类的类加载器是否一样。也就是说，如果firstObj是由firstClassLoader加载的，而sencondObj是由secondClassLoader加载的，那么上面的输出结果就是false了。</p>
+<h2 id="双亲委派模型"><a href="#双亲委派模型" class="headerlink" title="双亲委派模型"></a>双亲委派模型</h2><p>从Java虚拟机的角度来讲，只存在两种不同的类加载器：一种是启动类加载器(Bootstrap ClassLoader)，这个类加载器是使用C++实现的，是虚拟机自身的一部分；另一种就是所有其他的类加载器，这些类加载器都是由Java语言实现，独立于虚拟机外部，并且全都继承自抽象类java.lang.ClassLoader。</p>
+<p>从Java开发人员的角度来看，类加载器还可以划分得更细致一些，绝大部分Java程序都会使用到以下3种系统提供的类加载器：一种是启动类加载器(Bootstrap ClassLoader)，这个类加载器负责将存放在&lt;JAVA_HOME&gt;/lib目录中的，或者被-Xbootclasspath参数所指定的路径中的，并且是虚拟机识别的类库加载到虚拟机内存中；一种是扩展类加载器(Extension ClassLoader)，这个类加载器由sun.misc.Launcher$ExtClassLoader实现，它负责加载&lt;JAVA_HOME&gt;/lib/ext目录中的，或者被java.ext.dirs系统变量所指定的路径中的所有类库；还有一种是应用程序类加载器(Application ClassLoader)，这个类加载器由sun.misc.Launcher\$AppClassLoader实现。由于这个类加载器是ClassLoader中的getSystemClassLoader()方法的返回值，所以一般也称它为系统类加载器。它负责加载用户类路径(ClassPath)上所指定的类库。一般情况下这是程序中默认的类加载器。</p>
+<p>下图展示的类加载器之间的这种层次关系，称为类加载器的双亲委派模型(Parents Delegation Moel)。双亲委派模型要求除了顶层的启动类加载器外，其余的类加载器都应当有自己的父类加载器。这里的类加载器之间的父子关系一般不会以继承的关系来实现，而是都使用组合关系来复用父加载器的代码。</p>
+<p>双亲委派模型的工作过程是：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成，因此所有的加载请求最终都应该传送到顶层的启动类加载器中，只有当父加载器反馈自己无法完成这个加载请求时，子加载器才会尝试自己去加载。</p>
+<p>那么回到这段代码</p>
+<pre><code class="java">Object firstObj = new Object();
+Object secondObj = new Object();
+System.out.println(firstObj.getClass() == secondObj.getClass());
+</code></pre>
+<p>因为加载Object这个类都是交给Bootstraop ClassLoader去完成，因此认为这个两个类是相等的，如果通过自定义类加载器去加载类，同学们可以比较一下两个Class对象是否相等，当然可以不用Object这个类，自己写一个类也行。</p>
+<h2 id="双亲委派模型的实现"><a href="#双亲委派模型的实现" class="headerlink" title="双亲委派模型的实现"></a>双亲委派模型的实现</h2><p>我们来看看ClassLoader中loadClass的实现（jdk1.8）</p>
+<pre><code class="java">protected Class&lt;?&gt; loadClass(String name, boolean resolve)
+        throws ClassNotFoundException
+    {
+        synchronized (getClassLoadingLock(name)) {
+            // First, check if the class has already been loaded
+            Class&lt;?&gt; c = findLoadedClass(name);
+            if (c == null) {
+                long t0 = System.nanoTime();
+                try {
+                    if (parent != null) {
+                        c = parent.loadClass(name, false);
+                    } else {
+                        c = findBootstrapClassOrNull(name);
+                    }
+                } catch (ClassNotFoundException e) {
+                    // ClassNotFoundException thrown if class not found
+                    // from the non-null parent class loader
+                }
+
+                if (c == null) {
+                    // If still not found, then invoke findClass in order
+                    // to find the class.
+                    long t1 = System.nanoTime();
+                    c = findClass(name);
+
+                    // this is the defining class loader; record the stats
+                    sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                    sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                    sun.misc.PerfCounter.getFindClasses().increment();
+                }
+            }
+            if (resolve) {
+                resolveClass(c);
+            }
+            return c;
+        }
+    }
+</code></pre>
+<p>我们来分析一下ClassLoader中加载类的过程：</p>
+<p>findLoadedClass()：检查这个类是否已经被加载过，如果被加载过直接把加载过的这个类返回。</p>
+<p>parent.loadClass()：如果这个类加载器有父加载器，那么使用父加载器的loadClass()方法，直到Bootstrap ClassLoader。</p>
+<p>findBootstrapClassOrNull()：该方法返回由Bootstrap ClassLoader加载的类，如果没有加载完成则返回null。</p>
+<p>findClass()：如果父加载器都没有找到该类，那么就会抛出ClassNotFoundException异常。</p>
+<pre><code class="java">protected Class&lt;?&gt; findClass(String name) throws ClassNotFoundException {
+        throw new ClassNotFoundException(name);
+    }
+</code></pre>
+<h2 id="自定义-类加载器"><a href="#自定义-类加载器" class="headerlink" title="自定义 类加载器"></a>自定义 类加载器</h2><p>那么我们怎么自己定义类加载器呢？</p>
+<p>一般来说，我们自定义类加载器的时候，需要去继承ClassLoader，重写findClass()方法，为什么我们是重写findClass()而不是loadClass()呢，下面是关于loadClass()方法的描述</p>
+<blockquote>
+<p>Loads the class with the specified binary name. The default implementation of this method searches for classes in the following order:</p>
+<ol>
+<li>Invoke <code>findLoadedClass(String)</code> to check if the class has already been loaded.</li>
+<li>Invoke the <code>loadClass</code> method on the parent class loader. If the parent is <code>null</code> the class loader built-in to the virtual machine is used, instead.</li>
+<li>Invoke the <code>findClass(String)</code> method to find the class.</li>
+</ol>
+<p>If the class was found using the above steps, and the <code>resolve</code> flag is true, this method will then invoke the <code>resolveClass(Class)</code> method on the resulting <code>Class</code> object.</p>
+<p>Subclasses of <code>ClassLoader</code> are encouraged to override <code>findClass(String)</code>, rather than this method.</p>
+<p>Unless overridden, this method synchronizes on the result of <code>getClassLoadingLock</code> method during the entire class loading process.</p>
+</blockquote>
+<p>可以知道，在2中调用父加载器加载类，如果没有找到该类再调用findClass(String)方法加载类，那么我们为了实现双亲委派模型，应该重写findClass(String)方法，而调用loadClass(String)方法</p>
+<p>下面我将实现一个类加载器加载Person这个类</p>
+<p><strong>Person.java</strong></p>
+<pre><code class="java">public class Person {
+
+    private String name;
+
+    private String sex;
+
+    public Person(){}
+
+    public Person(String name, String sex) {
+        this.name = name;
+        this.sex = sex;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getSex() {
+        return sex;
+    }
+
+    public void setSex(String sex) {
+        this.sex = sex;
+    }
+}
+</code></pre>
+<p><strong>ClassPathClassLoader.java</strong></p>
+<pre><code class="java">public class ClassPathClassLoader extends ClassLoader {
+    private static final String CLASSPATH = ClassPathClassLoader.class.getResource(&quot;/&quot;).getPath();
+
+    public ClassPathClassLoader(){
+    }
+
+    @Override
+    public Class&lt;?&gt; findClass(String name) throws ClassNotFoundException {
+        byte[] b = getClassBytes(name);
+        if (b == null) {
+            throw new ClassNotFoundException(name);
+        } else {
+            return defineClass(name, b, 0, b.length);
+        }
+    }
+
+    private byte[] getClassBytes(String name){
+        final String classFile = resovleClassName(name);
+        byte[] b = null;
+        try {
+            FileInputStream fis = new FileInputStream(classFile);
+            b = new byte[fis.available()];
+            fis.read(b);
+            fis.close();
+            return b;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return b;
+    }
+
+    private String resovleClassName(String className) {
+        String classNamePath = className.replaceAll(&quot;\\.&quot;, File.separator);
+        return CLASSPATH + classNamePath + &quot;.class&quot;;
+    }
+}
+</code></pre>
+<p><strong>测试用例</strong></p>
+<pre><code class="java">public class MainClass {
+    public static void main(String[] args) {
+        ClassPathClassLoader classPathClassLoader = new ClassPathClassLoader();
+        try {
+            Class&lt;?&gt; personClass = classPathClassLoader.loadClass(&quot;cn.kevinleung.Person&quot;);
+            Object obj = personClass.newInstance();
+            System.out.println(obj.getClass().getClassLoader().getClass().getName());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        }
+    }
+}
+</code></pre>
+<p><strong>测试结果</strong></p>
+<p>sun.misc.Launcher\$AppClassLoader</p>
+<p>当调用loadClass()方法时，父加载器加载我们需要的类，这里的AppClassLoader能找到我们需要的类，因此使用该加载器，如果不能则调用findClass()方法，也就是我们重写的方法去加载我们需要的类</p>
+<hr>
+<p><strong>参考资料</strong></p>
+<ul>
+<li>《深入理解Java虚拟机》</li>
+</ul>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>切换Brew软件源</title>
+    <url>/2022/06/26/%E5%88%87%E6%8D%A2Brew%E8%BD%AF%E4%BB%B6%E6%BA%90/</url>
+    <content><![CDATA[<p>Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。</p>
+<p><em>Homebrew</em> 主要有四个部分组成: <em>brew</em>、<em>homebrew-core</em> 、<em>homebrew-bottles</em>、<em>homebrew-cask</em>。</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>brew</td>
+<td>Homebrew 源代码仓库</td>
+</tr>
+<tr>
+<td>homebrew-core</td>
+<td>Homebrew 核心软件仓库</td>
+</tr>
+<tr>
+<td>homebrew-bottles</td>
+<td>Homebrew 预编译二进制软件包</td>
+</tr>
+<tr>
+<td>homebrew-cask</td>
+<td>提供 macOS 应用和大型二进制文件</td>
+</tr>
+</tbody>
+</table>
+<h2 id="替换为阿里源"><a href="#替换为阿里源" class="headerlink" title="替换为阿里源"></a><strong>替换为阿里源</strong></h2><pre><code class="shell"># 查看 brew.git 当前源
+$ cd &quot;$(brew --repo)&quot; &amp;&amp; git remote -v
+origin    https://github.com/Homebrew/brew.git (fetch)
+origin    https://github.com/Homebrew/brew.git (push)
+
+# 查看 homebrew-core.git 当前源
+$ cd &quot;$(brew --repo homebrew/core)&quot; &amp;&amp; git remote -v
+origin    https://github.com/Homebrew/homebrew-core.git (fetch)
+origin    https://github.com/Homebrew/homebrew-core.git (push)
+
+# 修改 brew.git 为阿里源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/brew.git
+
+# 修改 homebrew-core.git 为阿里源
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/homebrew-core.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="替换为清华源"><a href="#替换为清华源" class="headerlink" title="替换为清华源"></a>替换为清华源</h2><pre><code class="shell"># 替换各个源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-cask.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="替换为中科大源"><a href="#替换为中科大源" class="headerlink" title="替换为中科大源"></a>替换为中科大源</h2><pre><code class="shell"># 替换各个源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.ustc.edu.cn/brew.git
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-core.git
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-cask.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="重置为官方源"><a href="#重置为官方源" class="headerlink" title="重置为官方源"></a>重置为官方源</h2><pre><code class="shell"># 重置 brew.git 为官方源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://github.com/Homebrew/brew.git
+
+# 重置 homebrew-core.git 为官方源
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://github.com/Homebrew/homebrew-core.git
+
+# 重置 homebrew-cask.git 为官方源
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://github.com/Homebrew/homebrew-cask
+
+# zsh 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
+$ vi ~/.zshrc
+# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
+
+# bash 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
+$ vi ~/.bash_profile
+# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
+
+# 刷新源
+$ brew update
+</code></pre>
+]]></content>
+      <tags>
+        <tag>小记</tag>
+      </tags>
+  </entry>
+</search>

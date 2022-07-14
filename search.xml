@@ -1,263 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Java容器：ArrayList源码解析</title>
-    <url>/2018/03/31/Java%E5%AE%B9%E5%99%A8%EF%BC%9AArrayList%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/</url>
-    <content><![CDATA[<h2 id="ArrayList"><a href="#ArrayList" class="headerlink" title="ArrayList"></a>ArrayList</h2><p>关于ArrayList，很多同学都不会感觉到陌生，它的存在就好像我们上学用的书包，方便而常用。只是这个“书包”，是可以自己变大的。是不是觉得很不可思议？当里面的“书本”达到一定数量了，这个“书包”会自动扩容，让你能放更多的“书”。但是我本人希望书包能够越做越小，但里面能放更多的书，哈哈。好了，那么ArrayList为什么能做到这一点？下面我们来探讨一下。</p>
-<h2 id="ArrayList实现的接口"><a href="#ArrayList实现的接口" class="headerlink" title="ArrayList实现的接口"></a>ArrayList实现的接口</h2><p>我们来看看ArrayList的class定义(jdk1.9，不同的jdk版本可能会有不同的实现，但思想是一致的)</p>
-<pre><code class="Java">public class ArrayList&lt;E&gt; extends AbstractList&lt;E&gt;
-        implements List&lt;E&gt;, RandomAccess, Cloneable, java.io.Serializable
-</code></pre>
-<p>ArrayList继承了AbstractList抽象列表，里面定义了诸如add，get，remove，addAll，clear等抽象方法，同时ArrayList实现了List，RandomAccess，Cloneable和Serializable接口。</p>
-<p>点开AbstractList可以发现，AbstractList也是实现了List接口的，可能有些同学会问，为什么ArrayList继承了AbstractList还需要实现List接口呢？网上关于这个问题，大多是这样的说法</p>
-<blockquote>
-<p>It’s a way to remember that this class really implements that interface.It won’t have any bad effect and it can help to understand the code without going through the complete hierarchy of the given class.</p>
-</blockquote>
-<p>意思是通过这种方式增加代码的可读性，提醒阅读者，ArrayList就是一个List，而无需查看AbstractList进行确认。</p>
-<p>ArrayList还实现了RandomAcesss，Cloneable和Serializable接口，表明这个类是可随机访问，可克隆和可序列化的。</p>
-<h2 id="ArrayList定义的常量"><a href="#ArrayList定义的常量" class="headerlink" title="ArrayList定义的常量"></a>ArrayList定义的常量</h2><pre><code class="java">    private static final long serialVersionUID = 8683452581122892189L;
-
-    /**
-     * Default initial capacity.
-     */
-    private static final int DEFAULT_CAPACITY = 10;
-
-    /**
-     * Shared empty array instance used for empty instances.
-     */
-    private static final Object[] EMPTY_ELEMENTDATA = {};
-
-    /**
-     * Shared empty array instance used for default sized empty instances. We
-     * distinguish this from EMPTY_ELEMENTDATA to know how much to inflate when
-     * first element is added.
-     */
-    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
-
-    /**
-     * The array buffer into which the elements of the ArrayList are stored.
-     * The capacity of the ArrayList is the length of this array buffer. Any
-     * empty ArrayList with elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA
-     * will be expanded to DEFAULT_CAPACITY when the first element is added.
-     */
-    transient Object[] elementData; // non-private to simplify nested class access
-
-    /**
-     * The size of the ArrayList (the number of elements it contains).
-     *
-     * @serial
-     */
-    private int size;
-</code></pre>
-<p>这里我们关注几个点，DEFAULT_CAPACITY，EMPTY_ELEMENTDATA，elementData，size</p>
-<p>关于serialVersionUID可能有些同学会有疑问，这里简单解释一下，serialVersionUID适用于Java的序列化机制。简单来说，Java的序列化机制是通过判断类的serialVersionUID来验证版本一致性的。在进行反序列化时，JVM会把传来的字节流中的serialVersionUID与本地相应实体类的serialVersionUID进行比较，如果相同就认为是一致的，可以进行反序列化，否则就会出现序列化版本不一致的异常，即是InvalidCastException。</p>
-<h3 id="DEFAULT-CAPACITY"><a href="#DEFAULT-CAPACITY" class="headerlink" title="DEFAULT_CAPACITY"></a>DEFAULT_CAPACITY</h3><p>DEFAULT_CAPACITY定义了实例化ArrayList时，ArrayList默认的容量大小，这个容量大小是在第一次往ArrayList中添加元素的时候才会初始化的。</p>
-<pre><code class="java">private int newCapacity(int minCapacity) {
-        // overflow-conscious code
-        int oldCapacity = elementData.length;
-        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
-        if (newCapacity - minCapacity &lt;= 0) {
-            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
-                return Math.max(DEFAULT_CAPACITY, minCapacity);
-            if (minCapacity &lt; 0) // overflow
-                throw new OutOfMemoryError();
-            return minCapacity;
-        }
-        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
-            ? newCapacity
-            : hugeCapacity(minCapacity);
-    }
-</code></pre>
-<p>当我们往ArrayList中添加元素时，判断如果这个List的size是否等于目前elementData的限定长度，如果是，就需要扩容，如果ArrayList是刚创建的，那么一开始往ArrayList中添加元素的这个判断就是true，扩容时，ArrayList采取的方式是使用Arrays.copyOf(elementData, newCapacity(minCapacity))方法复制elementData，并根据扩大的容量新建一个数组再赋值给elementData，这样就完成了扩容，上面的newCapacity(minCapacity)就是扩容的过程。这里的minCapacity一般是指ArrayList原有的size+1，因为扩容最起码增加一个容量嘛，这很容易理解。</p>
-<p>扩容公式：int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
-<p>如果计算出新的容量比最小容量小，通常的情况是把最小容量返回给调用者。当第一次添加元素的时候新的容量就比最小容量小，并且elementData也等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，这里有同学可能存有疑问，为什么这两个对象会相等？其实我们在不指定容量的情况下实例化ArrayList的时候，就把DEFAULTCAPACITY_EMPTY_ELEMENTDATA赋值给了elementData</p>
-<pre><code class="java">/**
-     * Constructs an empty list with an initial capacity of ten.
-     */
-    public ArrayList() {
-        this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
-    }
-</code></pre>
-<p>这是扩展出的新容量大小就是DEFAULT_CAPACITY</p>
-<h3 id="EMPTY-ELEMENTDATA"><a href="#EMPTY-ELEMENTDATA" class="headerlink" title="EMPTY_ELEMENTDATA"></a>EMPTY_ELEMENTDATA</h3><p>EMPTY_ELEMENTDATA的作用通过注释也能很清楚是干什么的，但是通过注释去了解程序我是不建议的，毕竟注释不是最真实的。</p>
-<p>通过查看调用EMPTY_ELEMENTDATA的地方可以看出，当我们实例化ArrayList的时候指定容量为0，EMPTY_ELEMENTDATA会被赋值给elementData，这就引发了另一问题，上面讲到，在扩容的时候会判断elementData是否等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，如果不等会直接返回最小容量，这就导致了在元素不多，甚至只有几个的时候，扩容的次数会变得频繁。</p>
-<p>什么时候elementData是EMPTY_ELEMENTDATA？</p>
-<ol>
-<li><p>当我们实例化ArrayList指定容量大小为0</p>
-</li>
-<li><p>当传递一个Collection容量大小为0</p>
-</li>
-<li><p>当调用trimToSize()，ArrayList的size为0</p>
-</li>
-<li><p>从对象输入流中读取一个ArrayList时，size为0</p>
-</li>
-</ol>
-<h3 id="elementData"><a href="#elementData" class="headerlink" title="elementData"></a>elementData</h3><p>通过上面的描述，相信同学们对elementData也有了一定的认识了。elementData其实就是存储数据的对象，我们往ArrayList中添加元素时，接收元素的就是elementData。需要注意的是，elementData的length并不等于ArrayList的size，elementData的length指的是ArrayList的capacity（容量），而size指的是ArrayList中元素的个数，当添加了一个元素的时候size会加1，而elementData的length不一定会改变。</p>
-<h3 id="ArrayList精髓"><a href="#ArrayList精髓" class="headerlink" title="ArrayList精髓"></a>ArrayList精髓</h3><h4 id="扩容过程"><a href="#扩容过程" class="headerlink" title="扩容过程"></a>扩容过程</h4><p>ArrayList是如何做到自动扩容的，或者说ArrayList是如何做到合理扩容的。先来看一下添加元素相关的方法</p>
-<pre><code class="java">/**
-     * This helper method split out from add(E) to keep method
-     * bytecode size under 35 (the -XX:MaxInlineSize default value),
-     * which helps when add(E) is called in a C1-compiled loop.
-     */
-    private void add(E e, Object[] elementData, int s) {
-        if (s == elementData.length)
-            elementData = grow();
-        elementData[s] = e;
-        size = s + 1;
-    }
-
-    /**
-     * Appends the specified element to the end of this list.
-     *
-     * @param e element to be appended to this list
-     * @return {@code true} (as specified by {@link Collection#add})
-     */
-    public boolean add(E e) {
-        modCount++;
-        add(e, elementData, size);
-        return true;
-    }
-
-    /**
-     * Increases the capacity to ensure that it can hold at least the
-     * number of elements specified by the minimum capacity argument.
-     *
-     * @param minCapacity the desired minimum capacity
-     * @throws OutOfMemoryError if minCapacity is less than zero
-     */
-    private Object[] grow(int minCapacity) {
-        return elementData = Arrays.copyOf(elementData,
-                                           newCapacity(minCapacity));
-    }
-
-    private Object[] grow() {
-        return grow(size + 1);
-    }
-
-    /**
-     * Returns a capacity at least as large as the given minimum capacity.
-     * Returns the current capacity increased by 50% if that suffices.
-     * Will not return a capacity greater than MAX_ARRAY_SIZE unless
-     * the given minimum capacity is greater than MAX_ARRAY_SIZE.
-     *
-     * @param minCapacity the desired minimum capacity
-     * @throws OutOfMemoryError if minCapacity is less than zero
-     */
-    private int newCapacity(int minCapacity) {
-        // overflow-conscious code
-        int oldCapacity = elementData.length;
-        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
-        if (newCapacity - minCapacity &lt;= 0) {
-            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
-                return Math.max(DEFAULT_CAPACITY, minCapacity);
-            if (minCapacity &lt; 0) // overflow
-                throw new OutOfMemoryError();
-            return minCapacity;
-        }
-        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
-            ? newCapacity
-            : hugeCapacity(minCapacity);
-    }
-</code></pre>
-<p>当我们调用ArrayList的add()方法时，会先判断ArrayList的size是否等于elementData的length，也就是问一下，目前的元素的个数是否达到了容量的大小，如果达到了容量大小，就需要扩容了，怎么扩容？调用grow()方法，grow()方法实际上就是使用Arrays.copyOf()根据elementData复制出具有相同元素并增加相应的容量的数组赋值给elementData完成扩容。关键是怎么扩容？过程在newCapacity()，首先计算新容量，扩容因数是0.5</p>
-<p>int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
-<p>当新容量比最小容量小或相等的时候，就用最小容量大小，因为此时ArrayList中的元素并不多，也就意味着前期ArrayList通过时间的消耗来换取空间的减少，元素不多说明不需要太大的容量，如果元素不多就进行大扩容必然是不合适的，因此开发者考虑到元素不多的情况的没必要进行大扩容，只需要最小扩容即可。但是每次添加元素的时候会导致扩容次数增加，因此必然会增加了时间的消耗。</p>
-<p>关于elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA的判断，请参考本文的<a href="#DEFAULT_CAPACITY">DEFAULT_CAPACITY</a></p>
-<p>当新容量比最小容量大的时候，就返回新容量的大小，但是新容量的大小不能比最大容量大，MAX_ARRAY_SIZE定义了最大容量</p>
-<pre><code class="java">/**
-     * The maximum size of array to allocate (unless necessary).
-     * Some VMs reserve some header words in an array.
-     * Attempts to allocate larger arrays may result in
-     * OutOfMemoryError: Requested array size exceeds VM limit
-     */
-    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
-</code></pre>
-<p>如果新容量比最大容量大，那么还会有一层保障机制，因为我们可以看到MAX_ARRAY_SIZE其实是减8了，这个时候，利用最小容量扩容，实际就是增大8个容量</p>
-<pre><code class="java">private static int hugeCapacity(int minCapacity) {
-        if (minCapacity &lt; 0) // overflow
-            throw new OutOfMemoryError();
-        return (minCapacity &gt; MAX_ARRAY_SIZE)
-            ? Integer.MAX_VALUE
-            : MAX_ARRAY_SIZE;
-    }
-</code></pre>
-<p>如果达到了最大容量，再添加元素的时候，无疑int的值的最高位会置1，表示一个负数，那么在扩容的时候就会抛出OutOfMemoryError。</p>
-]]></content>
-      <tags>
-        <tag>Java</tag>
-        <tag>Java集合类</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Spring启动流程</title>
-    <url>/2022/07/14/Spring%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。</p>
-<p>Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。</p>
-<h2 id="核心步骤"><a href="#核心步骤" class="headerlink" title="核心步骤"></a>核心步骤</h2><h3 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h3><h3 id="refresh"><a href="#refresh" class="headerlink" title="refresh"></a>refresh</h3><h3 id="stop"><a href="#stop" class="headerlink" title="stop"></a>stop</h3><h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><h3 id="scan实现原理"><a href="#scan实现原理" class="headerlink" title="scan实现原理"></a>scan实现原理</h3><p>既然我们知道了scan的作用是找到定义的bean，那么spring是如何找到这些bean的呢？spring在这中间究竟做了哪些事情，接下来作者将揭开spring scan的神秘面纱，从源码层面开始分析scan的工作原理。</p>
-<p>作者将使用AnnotationConfigApplicationContext作为例子，开始剖析scan的过程，新建一个AnnotationConfigApplicationContext的实例，可以发现其提供了一个scan的方法，这个方法的实现实际上是由ClassPathBeanDefinitionScanner实现的，接着往下深挖，看看ClassPathBeanDefinitionScanner在scan的时候做了什么事情。下面是作者总结的scan主要实现流程。</p>
-<p><img src="/.io//image-20220706213218202.png" alt="image-20220706213218202" style="zoom:50%;"></p>
-<p>有几个关键点需要搞清楚的：</p>
-<ol>
-<li>ClassPathDefinitionScanner是如何找到候选组件的?</li>
-<li>候选组件信息需要初始化哪些信息</li>
-<li>候选组件信息是如何注册到beanFactory</li>
-</ol>
-<h4 id="ClassPathDefinitionScanner是如何找到候选组件的"><a href="#ClassPathDefinitionScanner是如何找到候选组件的" class="headerlink" title="ClassPathDefinitionScanner是如何找到候选组件的"></a>ClassPathDefinitionScanner是如何找到候选组件的</h4><p>spring会先确定使用哪种方式扫描组件，目前spring提供两种组件扫描的方式，一种是指定根目录扫描下面的定义的组件，另外一种是根据spring-components指定的静态索引文件扫描组件。后者的方式主要是为了解决bean定义太多导致应用启动缓慢的问题，后者这次先不谈，先来看看常用的通过扫描根目录下的组件的方式。</p>
-<p>扫描根目录下列的类定义由PathMatchingResourcePatternResolver完成，该类扫描组件的方式主要有两种，一种是类路径下扫描，另外一种是绝对路径扫描。扫描组件的方式主要是通过给定路径的前缀决定的，如果前缀是classpath:*的情况下，spring会在类路径下指定的basePackage找出所有的类转换成Resource实例，接着遍历每一个Resource实例，读取当前Resource对应的类文件解析成MetadataReader，再判断当前MetadataReader是否属于候选组件。判断当前MetadataReader是否属于候选组件的依据是includeFilter和excludeFilter，在用户没有自定义的情况下，spring提供默认的includeFilter，分别是三个AnnotationTypeFilter，使用Component定义组件的Filter，使用Named定义组件的filter还有使用ManagedBean定义组件的filter。</p>
-<p>从上面spring根据basePackage扫描组件的实现方式可以看出，如果在指定basePackage下的类过多的情况，通过IO加载类的方式会显得效率低下，而且加载出来的Resource使用一个数组的结构保存，当类的数量过多，数组的大小也会随着类的数量呈线性膨胀。所以spring推出了另外一个解决方案，就是通过索引的方式完成组件的扫描。</p>
-<p>下面是ClassPathDefinitionScan的寻找候选组件的流程图</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220706190237762.png" alt="image-20220706190237762" style="zoom:50%;"></p>
-<h4 id="候选组件初始化"><a href="#候选组件初始化" class="headerlink" title="候选组件初始化"></a>候选组件初始化</h4><ol>
-<li>Scope设置</li>
-<li>init方法名初始化</li>
-<li>destroy方法名初始化</li>
-</ol>
-<p>scope设置包括创建bean的方式，是singleton还是prototype</p>
-<p>init和destroy方法名设置默认为空，通过BeanDefinitionDefaults控制</p>
-<h4 id="注册候选组件到BeanFactory"><a href="#注册候选组件到BeanFactory" class="headerlink" title="注册候选组件到BeanFactory"></a>注册候选组件到BeanFactory</h4><p>在注册候选组件到BeanFactory之前，Scanner会检查当前需要注册的bean是否重复，如果重复会抛出ConflictingBeanDefinitionException。</p>
-<p>因为ClassPathBeanDefinitionScanner是通过给定的BeanDefinitionRegistry来决定如何注册到beanFactory的，因为这本例子作者使用的是AnnotationConfigApplicationContext，在初始化AnnotationConfigApplicationContext时，会将registry注入到scanner，而注入的registry实际上是GenericApplicationContext，GenericApplicationContext会调用DefaultListableBeanFactory的registryBeanDefinition方法完成注册。在这里面DefaultListableBeanFactory会先在自己的成员变量beanDefinitionMap检查是否已经包含了需要注册的bean，如果已经包含，会检查是否能覆盖(allowBeanDefinitionOverriding，默认是true)的配置，如果不能覆盖则会抛出异常。接下来，DefaultListableBeanFactory会将需要注册的bean维护到beanDefinitionMap的成员变量中。值得注意的是，维护到beanDefinitionMap的过程中，DefaultListableBeanFactory会加上synchronized关键字确保这段代码是线程安全的。</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220708114448199.png" alt="image-20220708114448199"></p>
-<h3 id="refresh的实现原理"><a href="#refresh的实现原理" class="headerlink" title="refresh的实现原理"></a>refresh的实现原理</h3><p>初看refresh的内部实现，你可能会觉得杂乱无章，非常的不清晰，但是实际上仔细分析的话，整个refresh还是围绕着一个主体展开的。这个主体就是BeanFactory。下面作者来总结一下refresh做了哪些事情，为什么需要refresh。</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712213528259.png" alt="image-20220712213528259" style="zoom:30%;"></p>
-<p>从上面的代码翻译过来，可以总结为以下几个步骤：</p>
-<ol>
-<li>获取BeanFactory</li>
-<li>填充BeanFactory基本信息</li>
-<li>执行PostProcessor</li>
-<li>注册特定bean</li>
-<li>BeanFactory初始化后置处理</li>
-<li>refresh后置处理</li>
-</ol>
-<h4 id="获取BeanFactory"><a href="#获取BeanFactory" class="headerlink" title="获取BeanFactory"></a>获取BeanFactory</h4><p>这是在实例化ApplicationContext的时候就已经觉得的，作者使用的AnnotationConfigApplicationContext，在实例化的时候，默认会实例化DefaultListableBeanFactory。</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214513768.png" alt="image-20220712214513768" style="zoom:50%;"></p>
-<p>因此这里获取到的BeanFactory也会是DefaultListableBeanFactory。</p>
-<h4 id="填充BeanFactory基本信息"><a href="#填充BeanFactory基本信息" class="headerlink" title="填充BeanFactory基本信息"></a>填充BeanFactory基本信息</h4><p>下面截取了一部分初始化BeanFactory的代码，可以简单了解下。</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214754344.png" alt="image-20220712214754344" style="zoom: 33%;"></p>
-<h4 id="执行PostProcessor"><a href="#执行PostProcessor" class="headerlink" title="执行PostProcessor"></a>执行PostProcessor</h4><p>这里会执行两类PostProcessor，一类是BeanDefinitionRegistryPostProcessor，一类是BeanFactoryPostProcessor。BeanDefinitionRegistryPostProcessor可以在BeanFactory初始化后，拿到BeanDefinitionRegistry操作BeanFactory，而BeanFactoryPostProcessor允许在BeanFactory初始化后直接拿到ConfigurableListableBeanFactory对其操作。</p>
-<p>对于这两个PostProcessor我的理解是，对BeanFactory的操作进行了读写分离，BeanDefinitionRegistry负责注册BeanDefinition，ConfigurableListableBeanFactory负责读BeanDefinition。因此BeanDefinitionRegistryPostProcessor的执行是在BeanFactoryPostProcessor之前的，这样可以保证使用BeanFactoryPostProcessor也可以读我们使用BeanDefinitionRegistryPostProcessor定义的bean。</p>
-<h4 id="注册特定的bean"><a href="#注册特定的bean" class="headerlink" title="注册特定的bean"></a>注册特定的bean</h4><p>这些特定的bean包括：BeanPostProcessor, MesasgeSource, ApplicationEventMulticaster, ApplicationListener。来简单了解一下这些bean是做什么的：</p>
-<p><em>BeanPostProcessor</em> Bean后置处理器，是Bean在完成实例之前或者之后的处理器</p>
-<p><em>MessageSource</em> 不知道干嘛的</p>
-<p><em>ApplicationEventMulticaster</em> 事件广播器，主要用于注册监听器和发布事件</p>
-<p><em>ApplicationListener</em> 应用监听器，注册用户自定义的监听器</p>
-<h4 id="BeanFactory初始化后置处理"><a href="#BeanFactory初始化后置处理" class="headerlink" title="BeanFactory初始化后置处理"></a>BeanFactory初始化后置处理</h4><p>可以看到这里的后置处理主要做了实例化单例的bean：</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714153722283.png" alt="image-20220714153722283" style="zoom:50%;"></p>
-<p>BeanFactory的实例化实际上是调用了AbstractBeanFactory的getBean方法完成的。getBean方法主要完成了两件事情：</p>
-<ol>
-<li>获取bean</li>
-<li>实例化bean</li>
-</ol>
-<h4 id="refresh后置处理"><a href="#refresh后置处理" class="headerlink" title="refresh后置处理"></a>refresh后置处理</h4><p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714155034426.png" alt="image-20220714155034426" style="zoom:50%;"></p>
-<p>这里的逻辑非常清晰明了，从上面的代码可以看出来，完成refresh的时候会委托LifecycleProcessor执行onRefresh方法，调用Lifecycle的start方法。下一步发布一个完成refresh的事件，由监听完成refresh事件（ContextRefreshedEvent）的监听器处理。</p>
-<h3 id="Stop的实现原理"><a href="#Stop的实现原理" class="headerlink" title="Stop的实现原理"></a>Stop的实现原理</h3><p>stop的流程就相对来说比较简单，主要有有两步，分别是委托LifecycleProcessor执行Lifecycle的stop方法；发布ContextStopedEvent事件</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>作者从基础的Spring启动过程开始分析，点出了Spring容器在启动的过程中的核心点，但是Spring容器在启动时做的事情远远不止这些，里面还有很多细节点需要去发掘探索，有兴趣的读者可以基于上述的步骤深入去研究一下。看看Spring做了哪些事情只是其中的一部分，这部分可能在日常开发中遇到问题，可以意识到问题所在，但是最核心的是你能从中学到什么，Spring为什么要这么设计，比如复杂UML设计好处体现在哪里等等。作者也会持续学习，尽力理解其中的精髓和思想。</p>
-]]></content>
-      <tags>
-        <tag>Java</tag>
-        <tag>Spring</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>CentOS6安装mysql5.7</title>
     <url>/2018/10/14/CentOS6-%E5%AE%89%E8%A3%85-mysql5-7/</url>
     <content><![CDATA[<p>如何在CentOS6上安装mysql5.7?</p>
@@ -318,6 +61,75 @@ chkconfig mysqld on
 ]]></content>
       <tags>
         <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Spring启动流程</title>
+    <url>/2022/07/14/Spring%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。</p>
+<p>Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。</p>
+<h2 id="核心步骤"><a href="#核心步骤" class="headerlink" title="核心步骤"></a>核心步骤</h2><h3 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h3><h3 id="refresh"><a href="#refresh" class="headerlink" title="refresh"></a>refresh</h3><h3 id="stop"><a href="#stop" class="headerlink" title="stop"></a>stop</h3><h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><h3 id="scan实现原理"><a href="#scan实现原理" class="headerlink" title="scan实现原理"></a>scan实现原理</h3><p>既然我们知道了scan的作用是找到定义的bean，那么spring是如何找到这些bean的呢？spring在这中间究竟做了哪些事情，接下来作者将揭开spring scan的神秘面纱，从源码层面开始分析scan的工作原理。</p>
+<p>作者将使用AnnotationConfigApplicationContext作为例子，开始剖析scan的过程，新建一个AnnotationConfigApplicationContext的实例，可以发现其提供了一个scan的方法，这个方法的实现实际上是由ClassPathBeanDefinitionScanner实现的，接着往下深挖，看看ClassPathBeanDefinitionScanner在scan的时候做了什么事情。下面是作者总结的scan主要实现流程。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/KevinLeung611/image-collections@master/uPic/image-20220706213218202.png" alt="image-20220706213218202" style="zoom:50%;"></p>
+<p>有几个关键点需要搞清楚的：</p>
+<ol>
+<li>ClassPathDefinitionScanner是如何找到候选组件的?</li>
+<li>候选组件信息需要初始化哪些信息</li>
+<li>候选组件信息是如何注册到beanFactory</li>
+</ol>
+<h4 id="ClassPathDefinitionScanner是如何找到候选组件的"><a href="#ClassPathDefinitionScanner是如何找到候选组件的" class="headerlink" title="ClassPathDefinitionScanner是如何找到候选组件的"></a>ClassPathDefinitionScanner是如何找到候选组件的</h4><p>spring会先确定使用哪种方式扫描组件，目前spring提供两种组件扫描的方式，一种是指定根目录扫描下面的定义的组件，另外一种是根据spring-components指定的静态索引文件扫描组件。后者的方式主要是为了解决bean定义太多导致应用启动缓慢的问题，后者这次先不谈，先来看看常用的通过扫描根目录下的组件的方式。</p>
+<p>扫描根目录下列的类定义由PathMatchingResourcePatternResolver完成，该类扫描组件的方式主要有两种，一种是类路径下扫描，另外一种是绝对路径扫描。扫描组件的方式主要是通过给定路径的前缀决定的，如果前缀是classpath:*的情况下，spring会在类路径下指定的basePackage找出所有的类转换成Resource实例，接着遍历每一个Resource实例，读取当前Resource对应的类文件解析成MetadataReader，再判断当前MetadataReader是否属于候选组件。判断当前MetadataReader是否属于候选组件的依据是includeFilter和excludeFilter，在用户没有自定义的情况下，spring提供默认的includeFilter，分别是三个AnnotationTypeFilter，使用Component定义组件的Filter，使用Named定义组件的filter还有使用ManagedBean定义组件的filter。</p>
+<p>从上面spring根据basePackage扫描组件的实现方式可以看出，如果在指定basePackage下的类过多的情况，通过IO加载类的方式会显得效率低下，而且加载出来的Resource使用一个数组的结构保存，当类的数量过多，数组的大小也会随着类的数量呈线性膨胀。所以spring推出了另外一个解决方案，就是通过索引的方式完成组件的扫描。</p>
+<p>下面是ClassPathDefinitionScan的寻找候选组件的流程图</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220706190237762.png" alt="image-20220706190237762" style="zoom:50%;"></p>
+<h4 id="候选组件初始化"><a href="#候选组件初始化" class="headerlink" title="候选组件初始化"></a>候选组件初始化</h4><ol>
+<li>Scope设置</li>
+<li>init方法名初始化</li>
+<li>destroy方法名初始化</li>
+</ol>
+<p>scope设置包括创建bean的方式，是singleton还是prototype</p>
+<p>init和destroy方法名设置默认为空，通过BeanDefinitionDefaults控制</p>
+<h4 id="注册候选组件到BeanFactory"><a href="#注册候选组件到BeanFactory" class="headerlink" title="注册候选组件到BeanFactory"></a>注册候选组件到BeanFactory</h4><p>在注册候选组件到BeanFactory之前，Scanner会检查当前需要注册的bean是否重复，如果重复会抛出ConflictingBeanDefinitionException。</p>
+<p>因为ClassPathBeanDefinitionScanner是通过给定的BeanDefinitionRegistry来决定如何注册到beanFactory的，因为这本例子作者使用的是AnnotationConfigApplicationContext，在初始化AnnotationConfigApplicationContext时，会将registry注入到scanner，而注入的registry实际上是GenericApplicationContext，GenericApplicationContext会调用DefaultListableBeanFactory的registryBeanDefinition方法完成注册。在这里面DefaultListableBeanFactory会先在自己的成员变量beanDefinitionMap检查是否已经包含了需要注册的bean，如果已经包含，会检查是否能覆盖(allowBeanDefinitionOverriding，默认是true)的配置，如果不能覆盖则会抛出异常。接下来，DefaultListableBeanFactory会将需要注册的bean维护到beanDefinitionMap的成员变量中。值得注意的是，维护到beanDefinitionMap的过程中，DefaultListableBeanFactory会加上synchronized关键字确保这段代码是线程安全的。</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220708114448199.png" alt="image-20220708114448199"></p>
+<h3 id="refresh的实现原理"><a href="#refresh的实现原理" class="headerlink" title="refresh的实现原理"></a>refresh的实现原理</h3><p>初看refresh的内部实现，你可能会觉得杂乱无章，非常的不清晰，但是实际上仔细分析的话，整个refresh还是围绕着一个主体展开的。这个主体就是BeanFactory。下面作者来总结一下refresh做了哪些事情，为什么需要refresh。</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712213528259.png" alt="image-20220712213528259" style="zoom:30%;"></p>
+<p>从上面的代码翻译过来，可以总结为以下几个步骤：</p>
+<ol>
+<li>获取BeanFactory</li>
+<li>填充BeanFactory基本信息</li>
+<li>执行PostProcessor</li>
+<li>注册特定bean</li>
+<li>BeanFactory初始化后置处理</li>
+<li>refresh后置处理</li>
+</ol>
+<h4 id="获取BeanFactory"><a href="#获取BeanFactory" class="headerlink" title="获取BeanFactory"></a>获取BeanFactory</h4><p>这是在实例化ApplicationContext的时候就已经觉得的，作者使用的AnnotationConfigApplicationContext，在实例化的时候，默认会实例化DefaultListableBeanFactory。</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214513768.png" alt="image-20220712214513768" style="zoom:50%;"></p>
+<p>因此这里获取到的BeanFactory也会是DefaultListableBeanFactory。</p>
+<h4 id="填充BeanFactory基本信息"><a href="#填充BeanFactory基本信息" class="headerlink" title="填充BeanFactory基本信息"></a>填充BeanFactory基本信息</h4><p>下面截取了一部分初始化BeanFactory的代码，可以简单了解下。</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214754344.png" alt="image-20220712214754344" style="zoom: 33%;"></p>
+<h4 id="执行PostProcessor"><a href="#执行PostProcessor" class="headerlink" title="执行PostProcessor"></a>执行PostProcessor</h4><p>这里会执行两类PostProcessor，一类是BeanDefinitionRegistryPostProcessor，一类是BeanFactoryPostProcessor。BeanDefinitionRegistryPostProcessor可以在BeanFactory初始化后，拿到BeanDefinitionRegistry操作BeanFactory，而BeanFactoryPostProcessor允许在BeanFactory初始化后直接拿到ConfigurableListableBeanFactory对其操作。</p>
+<p>对于这两个PostProcessor我的理解是，对BeanFactory的操作进行了读写分离，BeanDefinitionRegistry负责注册BeanDefinition，ConfigurableListableBeanFactory负责读BeanDefinition。因此BeanDefinitionRegistryPostProcessor的执行是在BeanFactoryPostProcessor之前的，这样可以保证使用BeanFactoryPostProcessor也可以读我们使用BeanDefinitionRegistryPostProcessor定义的bean。</p>
+<h4 id="注册特定的bean"><a href="#注册特定的bean" class="headerlink" title="注册特定的bean"></a>注册特定的bean</h4><p>这些特定的bean包括：BeanPostProcessor, MesasgeSource, ApplicationEventMulticaster, ApplicationListener。来简单了解一下这些bean是做什么的：</p>
+<p><em>BeanPostProcessor</em> Bean后置处理器，是Bean在完成实例之前或者之后的处理器</p>
+<p><em>MessageSource</em> 不知道干嘛的</p>
+<p><em>ApplicationEventMulticaster</em> 事件广播器，主要用于注册监听器和发布事件</p>
+<p><em>ApplicationListener</em> 应用监听器，注册用户自定义的监听器</p>
+<h4 id="BeanFactory初始化后置处理"><a href="#BeanFactory初始化后置处理" class="headerlink" title="BeanFactory初始化后置处理"></a>BeanFactory初始化后置处理</h4><p>可以看到这里的后置处理主要做了实例化单例的bean：</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714153722283.png" alt="image-20220714153722283" style="zoom:50%;"></p>
+<p>BeanFactory的实例化实际上是调用了AbstractBeanFactory的getBean方法完成的。getBean方法主要完成了两件事情：</p>
+<ol>
+<li>获取bean</li>
+<li>实例化bean</li>
+</ol>
+<h4 id="refresh后置处理"><a href="#refresh后置处理" class="headerlink" title="refresh后置处理"></a>refresh后置处理</h4><p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714155034426.png" alt="image-20220714155034426" style="zoom:50%;"></p>
+<p>这里的逻辑非常清晰明了，从上面的代码可以看出来，完成refresh的时候会委托LifecycleProcessor执行onRefresh方法，调用Lifecycle的start方法。下一步发布一个完成refresh的事件，由监听完成refresh事件（ContextRefreshedEvent）的监听器处理。</p>
+<h3 id="Stop的实现原理"><a href="#Stop的实现原理" class="headerlink" title="Stop的实现原理"></a>Stop的实现原理</h3><p>stop的流程就相对来说比较简单，主要有有两步，分别是委托LifecycleProcessor执行Lifecycle的stop方法；发布ContextStopedEvent事件</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>作者从基础的Spring启动过程开始分析，点出了Spring容器在启动的过程中的核心点，但是Spring容器在启动时做的事情远远不止这些，里面还有很多细节点需要去发掘探索，有兴趣的读者可以基于上述的步骤深入去研究一下。看看Spring做了哪些事情只是其中的一部分，这部分可能在日常开发中遇到问题，可以意识到问题所在，但是最核心的是你能从中学到什么，Spring为什么要这么设计，比如复杂UML设计好处体现在哪里等等。作者也会持续学习，尽力理解其中的精髓和思想。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+        <tag>Spring</tag>
       </tags>
   </entry>
   <entry>
@@ -837,6 +649,194 @@ doSomethingwithconfig(context);
       </tags>
   </entry>
   <entry>
+    <title>Java容器：ArrayList源码解析</title>
+    <url>/2018/03/31/Java%E5%AE%B9%E5%99%A8%EF%BC%9AArrayList%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/</url>
+    <content><![CDATA[<h2 id="ArrayList"><a href="#ArrayList" class="headerlink" title="ArrayList"></a>ArrayList</h2><p>关于ArrayList，很多同学都不会感觉到陌生，它的存在就好像我们上学用的书包，方便而常用。只是这个“书包”，是可以自己变大的。是不是觉得很不可思议？当里面的“书本”达到一定数量了，这个“书包”会自动扩容，让你能放更多的“书”。但是我本人希望书包能够越做越小，但里面能放更多的书，哈哈。好了，那么ArrayList为什么能做到这一点？下面我们来探讨一下。</p>
+<h2 id="ArrayList实现的接口"><a href="#ArrayList实现的接口" class="headerlink" title="ArrayList实现的接口"></a>ArrayList实现的接口</h2><p>我们来看看ArrayList的class定义(jdk1.9，不同的jdk版本可能会有不同的实现，但思想是一致的)</p>
+<pre><code class="Java">public class ArrayList&lt;E&gt; extends AbstractList&lt;E&gt;
+        implements List&lt;E&gt;, RandomAccess, Cloneable, java.io.Serializable
+</code></pre>
+<p>ArrayList继承了AbstractList抽象列表，里面定义了诸如add，get，remove，addAll，clear等抽象方法，同时ArrayList实现了List，RandomAccess，Cloneable和Serializable接口。</p>
+<p>点开AbstractList可以发现，AbstractList也是实现了List接口的，可能有些同学会问，为什么ArrayList继承了AbstractList还需要实现List接口呢？网上关于这个问题，大多是这样的说法</p>
+<blockquote>
+<p>It’s a way to remember that this class really implements that interface.It won’t have any bad effect and it can help to understand the code without going through the complete hierarchy of the given class.</p>
+</blockquote>
+<p>意思是通过这种方式增加代码的可读性，提醒阅读者，ArrayList就是一个List，而无需查看AbstractList进行确认。</p>
+<p>ArrayList还实现了RandomAcesss，Cloneable和Serializable接口，表明这个类是可随机访问，可克隆和可序列化的。</p>
+<h2 id="ArrayList定义的常量"><a href="#ArrayList定义的常量" class="headerlink" title="ArrayList定义的常量"></a>ArrayList定义的常量</h2><pre><code class="java">    private static final long serialVersionUID = 8683452581122892189L;
+
+    /**
+     * Default initial capacity.
+     */
+    private static final int DEFAULT_CAPACITY = 10;
+
+    /**
+     * Shared empty array instance used for empty instances.
+     */
+    private static final Object[] EMPTY_ELEMENTDATA = {};
+
+    /**
+     * Shared empty array instance used for default sized empty instances. We
+     * distinguish this from EMPTY_ELEMENTDATA to know how much to inflate when
+     * first element is added.
+     */
+    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
+
+    /**
+     * The array buffer into which the elements of the ArrayList are stored.
+     * The capacity of the ArrayList is the length of this array buffer. Any
+     * empty ArrayList with elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA
+     * will be expanded to DEFAULT_CAPACITY when the first element is added.
+     */
+    transient Object[] elementData; // non-private to simplify nested class access
+
+    /**
+     * The size of the ArrayList (the number of elements it contains).
+     *
+     * @serial
+     */
+    private int size;
+</code></pre>
+<p>这里我们关注几个点，DEFAULT_CAPACITY，EMPTY_ELEMENTDATA，elementData，size</p>
+<p>关于serialVersionUID可能有些同学会有疑问，这里简单解释一下，serialVersionUID适用于Java的序列化机制。简单来说，Java的序列化机制是通过判断类的serialVersionUID来验证版本一致性的。在进行反序列化时，JVM会把传来的字节流中的serialVersionUID与本地相应实体类的serialVersionUID进行比较，如果相同就认为是一致的，可以进行反序列化，否则就会出现序列化版本不一致的异常，即是InvalidCastException。</p>
+<h3 id="DEFAULT-CAPACITY"><a href="#DEFAULT-CAPACITY" class="headerlink" title="DEFAULT_CAPACITY"></a>DEFAULT_CAPACITY</h3><p>DEFAULT_CAPACITY定义了实例化ArrayList时，ArrayList默认的容量大小，这个容量大小是在第一次往ArrayList中添加元素的时候才会初始化的。</p>
+<pre><code class="java">private int newCapacity(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = elementData.length;
+        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
+        if (newCapacity - minCapacity &lt;= 0) {
+            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+                return Math.max(DEFAULT_CAPACITY, minCapacity);
+            if (minCapacity &lt; 0) // overflow
+                throw new OutOfMemoryError();
+            return minCapacity;
+        }
+        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
+            ? newCapacity
+            : hugeCapacity(minCapacity);
+    }
+</code></pre>
+<p>当我们往ArrayList中添加元素时，判断如果这个List的size是否等于目前elementData的限定长度，如果是，就需要扩容，如果ArrayList是刚创建的，那么一开始往ArrayList中添加元素的这个判断就是true，扩容时，ArrayList采取的方式是使用Arrays.copyOf(elementData, newCapacity(minCapacity))方法复制elementData，并根据扩大的容量新建一个数组再赋值给elementData，这样就完成了扩容，上面的newCapacity(minCapacity)就是扩容的过程。这里的minCapacity一般是指ArrayList原有的size+1，因为扩容最起码增加一个容量嘛，这很容易理解。</p>
+<p>扩容公式：int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
+<p>如果计算出新的容量比最小容量小，通常的情况是把最小容量返回给调用者。当第一次添加元素的时候新的容量就比最小容量小，并且elementData也等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，这里有同学可能存有疑问，为什么这两个对象会相等？其实我们在不指定容量的情况下实例化ArrayList的时候，就把DEFAULTCAPACITY_EMPTY_ELEMENTDATA赋值给了elementData</p>
+<pre><code class="java">/**
+     * Constructs an empty list with an initial capacity of ten.
+     */
+    public ArrayList() {
+        this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
+    }
+</code></pre>
+<p>这是扩展出的新容量大小就是DEFAULT_CAPACITY</p>
+<h3 id="EMPTY-ELEMENTDATA"><a href="#EMPTY-ELEMENTDATA" class="headerlink" title="EMPTY_ELEMENTDATA"></a>EMPTY_ELEMENTDATA</h3><p>EMPTY_ELEMENTDATA的作用通过注释也能很清楚是干什么的，但是通过注释去了解程序我是不建议的，毕竟注释不是最真实的。</p>
+<p>通过查看调用EMPTY_ELEMENTDATA的地方可以看出，当我们实例化ArrayList的时候指定容量为0，EMPTY_ELEMENTDATA会被赋值给elementData，这就引发了另一问题，上面讲到，在扩容的时候会判断elementData是否等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，如果不等会直接返回最小容量，这就导致了在元素不多，甚至只有几个的时候，扩容的次数会变得频繁。</p>
+<p>什么时候elementData是EMPTY_ELEMENTDATA？</p>
+<ol>
+<li><p>当我们实例化ArrayList指定容量大小为0</p>
+</li>
+<li><p>当传递一个Collection容量大小为0</p>
+</li>
+<li><p>当调用trimToSize()，ArrayList的size为0</p>
+</li>
+<li><p>从对象输入流中读取一个ArrayList时，size为0</p>
+</li>
+</ol>
+<h3 id="elementData"><a href="#elementData" class="headerlink" title="elementData"></a>elementData</h3><p>通过上面的描述，相信同学们对elementData也有了一定的认识了。elementData其实就是存储数据的对象，我们往ArrayList中添加元素时，接收元素的就是elementData。需要注意的是，elementData的length并不等于ArrayList的size，elementData的length指的是ArrayList的capacity（容量），而size指的是ArrayList中元素的个数，当添加了一个元素的时候size会加1，而elementData的length不一定会改变。</p>
+<h3 id="ArrayList精髓"><a href="#ArrayList精髓" class="headerlink" title="ArrayList精髓"></a>ArrayList精髓</h3><h4 id="扩容过程"><a href="#扩容过程" class="headerlink" title="扩容过程"></a>扩容过程</h4><p>ArrayList是如何做到自动扩容的，或者说ArrayList是如何做到合理扩容的。先来看一下添加元素相关的方法</p>
+<pre><code class="java">/**
+     * This helper method split out from add(E) to keep method
+     * bytecode size under 35 (the -XX:MaxInlineSize default value),
+     * which helps when add(E) is called in a C1-compiled loop.
+     */
+    private void add(E e, Object[] elementData, int s) {
+        if (s == elementData.length)
+            elementData = grow();
+        elementData[s] = e;
+        size = s + 1;
+    }
+
+    /**
+     * Appends the specified element to the end of this list.
+     *
+     * @param e element to be appended to this list
+     * @return {@code true} (as specified by {@link Collection#add})
+     */
+    public boolean add(E e) {
+        modCount++;
+        add(e, elementData, size);
+        return true;
+    }
+
+    /**
+     * Increases the capacity to ensure that it can hold at least the
+     * number of elements specified by the minimum capacity argument.
+     *
+     * @param minCapacity the desired minimum capacity
+     * @throws OutOfMemoryError if minCapacity is less than zero
+     */
+    private Object[] grow(int minCapacity) {
+        return elementData = Arrays.copyOf(elementData,
+                                           newCapacity(minCapacity));
+    }
+
+    private Object[] grow() {
+        return grow(size + 1);
+    }
+
+    /**
+     * Returns a capacity at least as large as the given minimum capacity.
+     * Returns the current capacity increased by 50% if that suffices.
+     * Will not return a capacity greater than MAX_ARRAY_SIZE unless
+     * the given minimum capacity is greater than MAX_ARRAY_SIZE.
+     *
+     * @param minCapacity the desired minimum capacity
+     * @throws OutOfMemoryError if minCapacity is less than zero
+     */
+    private int newCapacity(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = elementData.length;
+        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
+        if (newCapacity - minCapacity &lt;= 0) {
+            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+                return Math.max(DEFAULT_CAPACITY, minCapacity);
+            if (minCapacity &lt; 0) // overflow
+                throw new OutOfMemoryError();
+            return minCapacity;
+        }
+        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
+            ? newCapacity
+            : hugeCapacity(minCapacity);
+    }
+</code></pre>
+<p>当我们调用ArrayList的add()方法时，会先判断ArrayList的size是否等于elementData的length，也就是问一下，目前的元素的个数是否达到了容量的大小，如果达到了容量大小，就需要扩容了，怎么扩容？调用grow()方法，grow()方法实际上就是使用Arrays.copyOf()根据elementData复制出具有相同元素并增加相应的容量的数组赋值给elementData完成扩容。关键是怎么扩容？过程在newCapacity()，首先计算新容量，扩容因数是0.5</p>
+<p>int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
+<p>当新容量比最小容量小或相等的时候，就用最小容量大小，因为此时ArrayList中的元素并不多，也就意味着前期ArrayList通过时间的消耗来换取空间的减少，元素不多说明不需要太大的容量，如果元素不多就进行大扩容必然是不合适的，因此开发者考虑到元素不多的情况的没必要进行大扩容，只需要最小扩容即可。但是每次添加元素的时候会导致扩容次数增加，因此必然会增加了时间的消耗。</p>
+<p>关于elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA的判断，请参考本文的<a href="#DEFAULT_CAPACITY">DEFAULT_CAPACITY</a></p>
+<p>当新容量比最小容量大的时候，就返回新容量的大小，但是新容量的大小不能比最大容量大，MAX_ARRAY_SIZE定义了最大容量</p>
+<pre><code class="java">/**
+     * The maximum size of array to allocate (unless necessary).
+     * Some VMs reserve some header words in an array.
+     * Attempts to allocate larger arrays may result in
+     * OutOfMemoryError: Requested array size exceeds VM limit
+     */
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+</code></pre>
+<p>如果新容量比最大容量大，那么还会有一层保障机制，因为我们可以看到MAX_ARRAY_SIZE其实是减8了，这个时候，利用最小容量扩容，实际就是增大8个容量</p>
+<pre><code class="java">private static int hugeCapacity(int minCapacity) {
+        if (minCapacity &lt; 0) // overflow
+            throw new OutOfMemoryError();
+        return (minCapacity &gt; MAX_ARRAY_SIZE)
+            ? Integer.MAX_VALUE
+            : MAX_ARRAY_SIZE;
+    }
+</code></pre>
+<p>如果达到了最大容量，再添加元素的时候，无疑int的值的最高位会置1，表示一个负数，那么在扩容的时候就会抛出OutOfMemoryError。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+        <tag>Java集合类</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>你的单例真的是单例吗</title>
     <url>/2019/08/04/%E4%BD%A0%E7%9A%84%E5%8D%95%E4%BE%8B%E7%9C%9F%E7%9A%84%E6%98%AF%E5%8D%95%E4%BE%8B%E5%90%97/</url>
     <content><![CDATA[<p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
@@ -1115,121 +1115,6 @@ op1->e</textarea><textarea id="flowchart-0-options" style="display: none">{"scal
       </tags>
   </entry>
   <entry>
-    <title>切换Brew软件源</title>
-    <url>/2022/06/26/%E5%88%87%E6%8D%A2Brew%E8%BD%AF%E4%BB%B6%E6%BA%90/</url>
-    <content><![CDATA[<p>Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。</p>
-<p><em>Homebrew</em> 主要有四个部分组成: <em>brew</em>、<em>homebrew-core</em> 、<em>homebrew-bottles</em>、<em>homebrew-cask</em>。</p>
-<table>
-<thead>
-<tr>
-<th>名称</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>brew</td>
-<td>Homebrew 源代码仓库</td>
-</tr>
-<tr>
-<td>homebrew-core</td>
-<td>Homebrew 核心软件仓库</td>
-</tr>
-<tr>
-<td>homebrew-bottles</td>
-<td>Homebrew 预编译二进制软件包</td>
-</tr>
-<tr>
-<td>homebrew-cask</td>
-<td>提供 macOS 应用和大型二进制文件</td>
-</tr>
-</tbody>
-</table>
-<h2 id="替换为阿里源"><a href="#替换为阿里源" class="headerlink" title="替换为阿里源"></a><strong>替换为阿里源</strong></h2><pre><code class="shell"># 查看 brew.git 当前源
-$ cd &quot;$(brew --repo)&quot; &amp;&amp; git remote -v
-origin    https://github.com/Homebrew/brew.git (fetch)
-origin    https://github.com/Homebrew/brew.git (push)
-
-# 查看 homebrew-core.git 当前源
-$ cd &quot;$(brew --repo homebrew/core)&quot; &amp;&amp; git remote -v
-origin    https://github.com/Homebrew/homebrew-core.git (fetch)
-origin    https://github.com/Homebrew/homebrew-core.git (push)
-
-# 修改 brew.git 为阿里源
-$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/brew.git
-
-# 修改 homebrew-core.git 为阿里源
-$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/homebrew-core.git
-
-# zsh 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
-$ source ~/.zshrc
-
-# bash 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
-$ source ~/.bash_profile
-
-# 刷新源
-$ brew update
-</code></pre>
-<h2 id="替换为清华源"><a href="#替换为清华源" class="headerlink" title="替换为清华源"></a>替换为清华源</h2><pre><code class="shell"># 替换各个源
-$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
-$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
-$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-cask.git
-
-# zsh 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
-$ source ~/.zshrc
-
-# bash 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
-$ source ~/.bash_profile
-
-# 刷新源
-$ brew update
-</code></pre>
-<h2 id="替换为中科大源"><a href="#替换为中科大源" class="headerlink" title="替换为中科大源"></a>替换为中科大源</h2><pre><code class="shell"># 替换各个源
-$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.ustc.edu.cn/brew.git
-$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-core.git
-$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-cask.git
-
-# zsh 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
-$ source ~/.zshrc
-
-# bash 替换 brew bintray 镜像
-$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
-$ source ~/.bash_profile
-
-# 刷新源
-$ brew update
-</code></pre>
-<h2 id="重置为官方源"><a href="#重置为官方源" class="headerlink" title="重置为官方源"></a>重置为官方源</h2><pre><code class="shell"># 重置 brew.git 为官方源
-$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://github.com/Homebrew/brew.git
-
-# 重置 homebrew-core.git 为官方源
-$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://github.com/Homebrew/homebrew-core.git
-
-# 重置 homebrew-cask.git 为官方源
-$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://github.com/Homebrew/homebrew-cask
-
-# zsh 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
-$ vi ~/.zshrc
-# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
-
-# bash 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
-$ vi ~/.bash_profile
-# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
-
-# 刷新源
-$ brew update
-</code></pre>
-]]></content>
-      <tags>
-        <tag>小记</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>自定义类加载器</title>
     <url>/2018/04/14/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/</url>
     <content><![CDATA[<h2 id="类加载机制中的加载阶段"><a href="#类加载机制中的加载阶段" class="headerlink" title="类加载机制中的加载阶段"></a>类加载机制中的加载阶段</h2><p>那么jvm在什么情况下处于加载阶段呢？</p>
@@ -1489,6 +1374,121 @@ public class SpringApplicationClosingListener implements ApplicationListener&lt;
       <tags>
         <tag>Java</tag>
         <tag>Spring</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>切换Brew软件源</title>
+    <url>/2022/06/26/%E5%88%87%E6%8D%A2Brew%E8%BD%AF%E4%BB%B6%E6%BA%90/</url>
+    <content><![CDATA[<p>Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。</p>
+<p><em>Homebrew</em> 主要有四个部分组成: <em>brew</em>、<em>homebrew-core</em> 、<em>homebrew-bottles</em>、<em>homebrew-cask</em>。</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>brew</td>
+<td>Homebrew 源代码仓库</td>
+</tr>
+<tr>
+<td>homebrew-core</td>
+<td>Homebrew 核心软件仓库</td>
+</tr>
+<tr>
+<td>homebrew-bottles</td>
+<td>Homebrew 预编译二进制软件包</td>
+</tr>
+<tr>
+<td>homebrew-cask</td>
+<td>提供 macOS 应用和大型二进制文件</td>
+</tr>
+</tbody>
+</table>
+<h2 id="替换为阿里源"><a href="#替换为阿里源" class="headerlink" title="替换为阿里源"></a><strong>替换为阿里源</strong></h2><pre><code class="shell"># 查看 brew.git 当前源
+$ cd &quot;$(brew --repo)&quot; &amp;&amp; git remote -v
+origin    https://github.com/Homebrew/brew.git (fetch)
+origin    https://github.com/Homebrew/brew.git (push)
+
+# 查看 homebrew-core.git 当前源
+$ cd &quot;$(brew --repo homebrew/core)&quot; &amp;&amp; git remote -v
+origin    https://github.com/Homebrew/homebrew-core.git (fetch)
+origin    https://github.com/Homebrew/homebrew-core.git (push)
+
+# 修改 brew.git 为阿里源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/brew.git
+
+# 修改 homebrew-core.git 为阿里源
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.aliyun.com/homebrew/homebrew-core.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="替换为清华源"><a href="#替换为清华源" class="headerlink" title="替换为清华源"></a>替换为清华源</h2><pre><code class="shell"># 替换各个源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-cask.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="替换为中科大源"><a href="#替换为中科大源" class="headerlink" title="替换为中科大源"></a>替换为中科大源</h2><pre><code class="shell"># 替换各个源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://mirrors.ustc.edu.cn/brew.git
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-core.git
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://mirrors.ustc.edu.cn/homebrew-cask.git
+
+# zsh 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.zshrc
+$ source ~/.zshrc
+
+# bash 替换 brew bintray 镜像
+$ echo &#39;export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles&#39; &gt;&gt; ~/.bash_profile
+$ source ~/.bash_profile
+
+# 刷新源
+$ brew update
+</code></pre>
+<h2 id="重置为官方源"><a href="#重置为官方源" class="headerlink" title="重置为官方源"></a>重置为官方源</h2><pre><code class="shell"># 重置 brew.git 为官方源
+$ git -C &quot;$(brew --repo)&quot; remote set-url origin https://github.com/Homebrew/brew.git
+
+# 重置 homebrew-core.git 为官方源
+$ git -C &quot;$(brew --repo homebrew/core)&quot; remote set-url origin https://github.com/Homebrew/homebrew-core.git
+
+# 重置 homebrew-cask.git 为官方源
+$ git -C &quot;$(brew --repo homebrew/cask)&quot; remote set-url origin https://github.com/Homebrew/homebrew-cask
+
+# zsh 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
+$ vi ~/.zshrc
+# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
+
+# bash 注释掉 HOMEBREW_BOTTLE_DOMAIN 配置
+$ vi ~/.bash_profile
+# export HOMEBREW_BOTTLE_DOMAIN=xxxxxxxxx
+
+# 刷新源
+$ brew update
+</code></pre>
+]]></content>
+      <tags>
+        <tag>小记</tag>
       </tags>
   </entry>
 </search>

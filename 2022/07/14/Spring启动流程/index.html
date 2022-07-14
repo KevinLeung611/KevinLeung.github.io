@@ -104,7 +104,7 @@
 <meta property="og:site_name" content="善博的博客">
 <meta property="og:description" content="概述从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。 Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。 核心步骤scanrefreshstop">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https://kevinleung611.github.io/.io//image-20220706213218202.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/KevinLeung611/image-collections@master/uPic/image-20220706213218202.png">
 <meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220706190237762.png">
 <meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220708114448199.png">
 <meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712213528259.png">
@@ -112,11 +112,11 @@
 <meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214754344.png">
 <meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714153722283.png">
 <meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714155034426.png">
-<meta property="og:updated_time" content="2022-07-14T09:33:42.704Z">
+<meta property="og:updated_time" content="2022-07-14T10:15:51.853Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Spring启动流程">
 <meta name="twitter:description" content="概述从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。 Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。 核心步骤scanrefreshstop">
-<meta name="twitter:image" content="https://kevinleung611.github.io/.io//image-20220706213218202.png">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/KevinLeung611/image-collections@master/uPic/image-20220706213218202.png">
 
 
 
@@ -353,7 +353,7 @@
                 
               
 
-              <time title="创建时间：2022-07-14 00:00:00 / 修改时间：17:33:42" itemprop="dateCreated datePublished" datetime="2022-07-14T00:00:00+08:00">2022-07-14</time>
+              <time title="创建时间：2022-07-14 00:00:00 / 修改时间：18:15:51" itemprop="dateCreated datePublished" datetime="2022-07-14T00:00:00+08:00">2022-07-14</time>
             
 
             
@@ -396,7 +396,7 @@
 <p>Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。</p>
 <h2 id="核心步骤"><a href="#核心步骤" class="headerlink" title="核心步骤"></a>核心步骤</h2><h3 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h3><h3 id="refresh"><a href="#refresh" class="headerlink" title="refresh"></a>refresh</h3><h3 id="stop"><a href="#stop" class="headerlink" title="stop"></a>stop</h3><h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><h3 id="scan实现原理"><a href="#scan实现原理" class="headerlink" title="scan实现原理"></a>scan实现原理</h3><p>既然我们知道了scan的作用是找到定义的bean，那么spring是如何找到这些bean的呢？spring在这中间究竟做了哪些事情，接下来作者将揭开spring scan的神秘面纱，从源码层面开始分析scan的工作原理。</p>
 <p>作者将使用AnnotationConfigApplicationContext作为例子，开始剖析scan的过程，新建一个AnnotationConfigApplicationContext的实例，可以发现其提供了一个scan的方法，这个方法的实现实际上是由ClassPathBeanDefinitionScanner实现的，接着往下深挖，看看ClassPathBeanDefinitionScanner在scan的时候做了什么事情。下面是作者总结的scan主要实现流程。</p>
-<p><img src="/.io//image-20220706213218202.png" alt="image-20220706213218202" style="zoom:50%;"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/KevinLeung611/image-collections@master/uPic/image-20220706213218202.png" alt="image-20220706213218202" style="zoom:50%;"></p>
 <p>有几个关键点需要搞清楚的：</p>
 <ol>
 <li>ClassPathDefinitionScanner是如何找到候选组件的?</li>
