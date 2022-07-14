@@ -768,6 +768,75 @@ public PropertyValues postProcessPropertyValues(
       </tags>
   </entry>
   <entry>
+    <title>Spring启动流程</title>
+    <url>/2022/07/14/Spring%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。</p>
+<p>Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。</p>
+<h2 id="核心步骤"><a href="#核心步骤" class="headerlink" title="核心步骤"></a>核心步骤</h2><h3 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h3><h3 id="refresh"><a href="#refresh" class="headerlink" title="refresh"></a>refresh</h3><h3 id="stop"><a href="#stop" class="headerlink" title="stop"></a>stop</h3><h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><h3 id="scan实现原理"><a href="#scan实现原理" class="headerlink" title="scan实现原理"></a>scan实现原理</h3><p>既然我们知道了scan的作用是找到定义的bean，那么spring是如何找到这些bean的呢？spring在这中间究竟做了哪些事情，接下来作者将揭开spring scan的神秘面纱，从源码层面开始分析scan的工作原理。</p>
+<p>作者将使用AnnotationConfigApplicationContext作为例子，开始剖析scan的过程，新建一个AnnotationConfigApplicationContext的实例，可以发现其提供了一个scan的方法，这个方法的实现实际上是由ClassPathBeanDefinitionScanner实现的，接着往下深挖，看看ClassPathBeanDefinitionScanner在scan的时候做了什么事情。下面是作者总结的scan主要实现流程。</p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220706213218202.png?token=GHSAT0AAAAAABWTIENX5MYRWNROJGPXKJOCYWP7KPQ" alt="image-20220706213218202" style="zoom:50%;"></p>
+<p>有几个关键点需要搞清楚的：</p>
+<ol>
+<li>ClassPathDefinitionScanner是如何找到候选组件的?</li>
+<li>候选组件信息需要初始化哪些信息</li>
+<li>候选组件信息是如何注册到beanFactory</li>
+</ol>
+<h4 id="ClassPathDefinitionScanner是如何找到候选组件的"><a href="#ClassPathDefinitionScanner是如何找到候选组件的" class="headerlink" title="ClassPathDefinitionScanner是如何找到候选组件的"></a>ClassPathDefinitionScanner是如何找到候选组件的</h4><p>spring会先确定使用哪种方式扫描组件，目前spring提供两种组件扫描的方式，一种是指定根目录扫描下面的定义的组件，另外一种是根据spring-components指定的静态索引文件扫描组件。后者的方式主要是为了解决bean定义太多导致应用启动缓慢的问题，后者这次先不谈，先来看看常用的通过扫描根目录下的组件的方式。</p>
+<p>扫描根目录下列的类定义由PathMatchingResourcePatternResolver完成，该类扫描组件的方式主要有两种，一种是类路径下扫描，另外一种是绝对路径扫描。扫描组件的方式主要是通过给定路径的前缀决定的，如果前缀是classpath:*的情况下，spring会在类路径下指定的basePackage找出所有的类转换成Resource实例，接着遍历每一个Resource实例，读取当前Resource对应的类文件解析成MetadataReader，再判断当前MetadataReader是否属于候选组件。判断当前MetadataReader是否属于候选组件的依据是includeFilter和excludeFilter，在用户没有自定义的情况下，spring提供默认的includeFilter，分别是三个AnnotationTypeFilter，使用Component定义组件的Filter，使用Named定义组件的filter还有使用ManagedBean定义组件的filter。</p>
+<p>从上面spring根据basePackage扫描组件的实现方式可以看出，如果在指定basePackage下的类过多的情况，通过IO加载类的方式会显得效率低下，而且加载出来的Resource使用一个数组的结构保存，当类的数量过多，数组的大小也会随着类的数量呈线性膨胀。所以spring推出了另外一个解决方案，就是通过索引的方式完成组件的扫描。</p>
+<p>下面是ClassPathDefinitionScan的寻找候选组件的流程图</p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220706190237762.png?token=AGFIVUO6ZEF2R7LOIRCF4ILCZ75SI" alt="image-20220706190237762" style="zoom:50%;"></p>
+<h4 id="候选组件初始化"><a href="#候选组件初始化" class="headerlink" title="候选组件初始化"></a>候选组件初始化</h4><ol>
+<li>Scope设置</li>
+<li>init方法名初始化</li>
+<li>destroy方法名初始化</li>
+</ol>
+<p>scope设置包括创建bean的方式，是singleton还是prototype</p>
+<p>init和destroy方法名设置默认为空，通过BeanDefinitionDefaults控制</p>
+<h4 id="注册候选组件到BeanFactory"><a href="#注册候选组件到BeanFactory" class="headerlink" title="注册候选组件到BeanFactory"></a>注册候选组件到BeanFactory</h4><p>在注册候选组件到BeanFactory之前，Scanner会检查当前需要注册的bean是否重复，如果重复会抛出ConflictingBeanDefinitionException。</p>
+<p>因为ClassPathBeanDefinitionScanner是通过给定的BeanDefinitionRegistry来决定如何注册到beanFactory的，因为这本例子作者使用的是AnnotationConfigApplicationContext，在初始化AnnotationConfigApplicationContext时，会将registry注入到scanner，而注入的registry实际上是GenericApplicationContext，GenericApplicationContext会调用DefaultListableBeanFactory的registryBeanDefinition方法完成注册。在这里面DefaultListableBeanFactory会先在自己的成员变量beanDefinitionMap检查是否已经包含了需要注册的bean，如果已经包含，会检查是否能覆盖(allowBeanDefinitionOverriding，默认是true)的配置，如果不能覆盖则会抛出异常。接下来，DefaultListableBeanFactory会将需要注册的bean维护到beanDefinitionMap的成员变量中。值得注意的是，维护到beanDefinitionMap的过程中，DefaultListableBeanFactory会加上synchronized关键字确保这段代码是线程安全的。</p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220708114448199.png?token=AGFIVUNRMHOU62IA3OPIPRLCZ75TC" alt="image-20220708114448199"></p>
+<h3 id="refresh的实现原理"><a href="#refresh的实现原理" class="headerlink" title="refresh的实现原理"></a>refresh的实现原理</h3><p>初看refresh的内部实现，你可能会觉得杂乱无章，非常的不清晰，但是实际上仔细分析的话，整个refresh还是围绕着一个主体展开的。这个主体就是BeanFactory。下面作者来总结一下refresh做了哪些事情，为什么需要refresh。</p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712213528259.png?token=AGFIVUJ2W7O6CQNLHBHZ7FTCZ75TQ" alt="image-20220712213528259" style="zoom:30%;"></p>
+<p>从上面的代码翻译过来，可以总结为以下几个步骤：</p>
+<ol>
+<li>获取BeanFactory</li>
+<li>填充BeanFactory基本信息</li>
+<li>执行PostProcessor</li>
+<li>注册特定bean</li>
+<li>BeanFactory初始化后置处理</li>
+<li>refresh后置处理</li>
+</ol>
+<h4 id="获取BeanFactory"><a href="#获取BeanFactory" class="headerlink" title="获取BeanFactory"></a>获取BeanFactory</h4><p>这是在实例化ApplicationContext的时候就已经觉得的，作者使用的AnnotationConfigApplicationContext，在实例化的时候，默认会实例化DefaultListableBeanFactory。</p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712214513768.png?token=AGFIVUOG5VXG2VK35THTGVLCZ75T4" alt="image-20220712214513768" style="zoom:50%;"></p>
+<p>因此这里获取到的BeanFactory也会是DefaultListableBeanFactory。</p>
+<h4 id="填充BeanFactory基本信息"><a href="#填充BeanFactory基本信息" class="headerlink" title="填充BeanFactory基本信息"></a>填充BeanFactory基本信息</h4><p>下面截取了一部分初始化BeanFactory的代码，可以简单了解下。</p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712214754344.png?token=AGFIVUMJ3CY37TPL7IELDT3CZ75UK" alt="image-20220712214754344" style="zoom: 33%;"></p>
+<h4 id="执行PostProcessor"><a href="#执行PostProcessor" class="headerlink" title="执行PostProcessor"></a>执行PostProcessor</h4><p>这里会执行两类PostProcessor，一类是BeanDefinitionRegistryPostProcessor，一类是BeanFactoryPostProcessor。BeanDefinitionRegistryPostProcessor可以在BeanFactory初始化后，拿到BeanDefinitionRegistry操作BeanFactory，而BeanFactoryPostProcessor允许在BeanFactory初始化后直接拿到ConfigurableListableBeanFactory对其操作。</p>
+<p>对于这两个PostProcessor我的理解是，对BeanFactory的操作进行了读写分离，BeanDefinitionRegistry负责注册BeanDefinition，ConfigurableListableBeanFactory负责读BeanDefinition。因此BeanDefinitionRegistryPostProcessor的执行是在BeanFactoryPostProcessor之前的，这样可以保证使用BeanFactoryPostProcessor也可以读我们使用BeanDefinitionRegistryPostProcessor定义的bean。</p>
+<h4 id="注册特定的bean"><a href="#注册特定的bean" class="headerlink" title="注册特定的bean"></a>注册特定的bean</h4><p>这些特定的bean包括：BeanPostProcessor, MesasgeSource, ApplicationEventMulticaster, ApplicationListener。来简单了解一下这些bean是做什么的：</p>
+<p><em>BeanPostProcessor</em> Bean后置处理器，是Bean在完成实例之前或者之后的处理器</p>
+<p><em>MessageSource</em> 不知道干嘛的</p>
+<p><em>ApplicationEventMulticaster</em> 事件广播器，主要用于注册监听器和发布事件</p>
+<p><em>ApplicationListener</em> 应用监听器，注册用户自定义的监听器</p>
+<h4 id="BeanFactory初始化后置处理"><a href="#BeanFactory初始化后置处理" class="headerlink" title="BeanFactory初始化后置处理"></a>BeanFactory初始化后置处理</h4><p>可以看到这里的后置处理主要做了实例化单例的bean：</p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220714153722283.png?token=AGFIVUMSY3TWS3IP5C545PTCZ75UU" alt="image-20220714153722283" style="zoom:50%;"></p>
+<p>BeanFactory的实例化实际上是调用了AbstractBeanFactory的getBean方法完成的。getBean方法主要完成了两件事情：</p>
+<ol>
+<li>获取bean</li>
+<li>实例化bean</li>
+</ol>
+<h4 id="refresh后置处理"><a href="#refresh后置处理" class="headerlink" title="refresh后置处理"></a>refresh后置处理</h4><p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220714155034426.png?token=AGFIVUOOUCFXHXH2VFN3ZDTCZ75VC" alt="image-20220714155034426" style="zoom:50%;"></p>
+<p>这里的逻辑非常清晰明了，从上面的代码可以看出来，完成refresh的时候会委托LifecycleProcessor执行onRefresh方法，调用Lifecycle的start方法。下一步发布一个完成refresh的事件，由监听完成refresh事件（ContextRefreshedEvent）的监听器处理。</p>
+<h3 id="Stop的实现原理"><a href="#Stop的实现原理" class="headerlink" title="Stop的实现原理"></a>Stop的实现原理</h3><p>stop的流程就相对来说比较简单，主要有有两步，分别是委托LifecycleProcessor执行Lifecycle的stop方法；发布ContextStopedEvent事件</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>作者从基础的Spring启动过程开始分析，点出了Spring容器在启动的过程中的核心点，但是Spring容器在启动时做的事情远远不止这些，里面还有很多细节点需要去发掘探索，有兴趣的读者可以基于上述的步骤深入去研究一下。看看Spring做了哪些事情只是其中的一部分，这部分可能在日常开发中遇到问题，可以意识到问题所在，但是最核心的是你能从中学到什么，Spring为什么要这么设计，比如复杂UML设计好处体现在哪里等等。作者也会持续学习，尽力理解其中的精髓和思想。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+        <tag>Spring</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>你的单例真的是单例吗</title>
     <url>/2019/08/04/%E4%BD%A0%E7%9A%84%E5%8D%95%E4%BE%8B%E7%9C%9F%E7%9A%84%E6%98%AF%E5%8D%95%E4%BE%8B%E5%90%97/</url>
     <content><![CDATA[<p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
@@ -970,151 +1039,6 @@ op1->e</textarea><textarea id="flowchart-0-options" style="display: none">{"scal
       </tags>
   </entry>
   <entry>
-    <title>Spring启动流程</title>
-    <url>/2022/07/14/Spring%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。</p>
-<p>Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。</p>
-<h2 id="核心步骤"><a href="#核心步骤" class="headerlink" title="核心步骤"></a>核心步骤</h2><h3 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h3><h3 id="refresh"><a href="#refresh" class="headerlink" title="refresh"></a>refresh</h3><h3 id="stop"><a href="#stop" class="headerlink" title="stop"></a>stop</h3><h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><h3 id="scan实现原理"><a href="#scan实现原理" class="headerlink" title="scan实现原理"></a>scan实现原理</h3><p>既然我们知道了scan的作用是找到定义的bean，那么spring是如何找到这些bean的呢？spring在这中间究竟做了哪些事情，接下来作者将揭开spring scan的神秘面纱，从源码层面开始分析scan的工作原理。</p>
-<p>作者将使用AnnotationConfigApplicationContext作为例子，开始剖析scan的过程，新建一个AnnotationConfigApplicationContext的实例，可以发现其提供了一个scan的方法，这个方法的实现实际上是由ClassPathBeanDefinitionScanner实现的，接着往下深挖，看看ClassPathBeanDefinitionScanner在scan的时候做了什么事情。下面是作者总结的scan主要实现流程。</p>
-<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220706213218202.png?token=GHSAT0AAAAAABWTIENX5MYRWNROJGPXKJOCYWP7KPQ" alt="image-20220706213218202" style="zoom:50%;"></p>
-<p>有几个关键点需要搞清楚的：</p>
-<ol>
-<li>ClassPathDefinitionScanner是如何找到候选组件的?</li>
-<li>候选组件信息需要初始化哪些信息</li>
-<li>候选组件信息是如何注册到beanFactory</li>
-</ol>
-<h4 id="ClassPathDefinitionScanner是如何找到候选组件的"><a href="#ClassPathDefinitionScanner是如何找到候选组件的" class="headerlink" title="ClassPathDefinitionScanner是如何找到候选组件的"></a>ClassPathDefinitionScanner是如何找到候选组件的</h4><p>spring会先确定使用哪种方式扫描组件，目前spring提供两种组件扫描的方式，一种是指定根目录扫描下面的定义的组件，另外一种是根据spring-components指定的静态索引文件扫描组件。后者的方式主要是为了解决bean定义太多导致应用启动缓慢的问题，后者这次先不谈，先来看看常用的通过扫描根目录下的组件的方式。</p>
-<p>扫描根目录下列的类定义由PathMatchingResourcePatternResolver完成，该类扫描组件的方式主要有两种，一种是类路径下扫描，另外一种是绝对路径扫描。扫描组件的方式主要是通过给定路径的前缀决定的，如果前缀是classpath:*的情况下，spring会在类路径下指定的basePackage找出所有的类转换成Resource实例，接着遍历每一个Resource实例，读取当前Resource对应的类文件解析成MetadataReader，再判断当前MetadataReader是否属于候选组件。判断当前MetadataReader是否属于候选组件的依据是includeFilter和excludeFilter，在用户没有自定义的情况下，spring提供默认的includeFilter，分别是三个AnnotationTypeFilter，使用Component定义组件的Filter，使用Named定义组件的filter还有使用ManagedBean定义组件的filter。</p>
-<p>从上面spring根据basePackage扫描组件的实现方式可以看出，如果在指定basePackage下的类过多的情况，通过IO加载类的方式会显得效率低下，而且加载出来的Resource使用一个数组的结构保存，当类的数量过多，数组的大小也会随着类的数量呈线性膨胀。所以spring推出了另外一个解决方案，就是通过索引的方式完成组件的扫描。</p>
-<p>下面是ClassPathDefinitionScan的寻找候选组件的流程图</p>
-<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220706190237762.png?token=AGFIVUO6ZEF2R7LOIRCF4ILCZ75SI" alt="image-20220706190237762" style="zoom:50%;"></p>
-<h4 id="候选组件初始化"><a href="#候选组件初始化" class="headerlink" title="候选组件初始化"></a>候选组件初始化</h4><ol>
-<li>Scope设置</li>
-<li>init方法名初始化</li>
-<li>destroy方法名初始化</li>
-</ol>
-<p>scope设置包括创建bean的方式，是singleton还是prototype</p>
-<p>init和destroy方法名设置默认为空，通过BeanDefinitionDefaults控制</p>
-<h4 id="注册候选组件到BeanFactory"><a href="#注册候选组件到BeanFactory" class="headerlink" title="注册候选组件到BeanFactory"></a>注册候选组件到BeanFactory</h4><p>在注册候选组件到BeanFactory之前，Scanner会检查当前需要注册的bean是否重复，如果重复会抛出ConflictingBeanDefinitionException。</p>
-<p>因为ClassPathBeanDefinitionScanner是通过给定的BeanDefinitionRegistry来决定如何注册到beanFactory的，因为这本例子作者使用的是AnnotationConfigApplicationContext，在初始化AnnotationConfigApplicationContext时，会将registry注入到scanner，而注入的registry实际上是GenericApplicationContext，GenericApplicationContext会调用DefaultListableBeanFactory的registryBeanDefinition方法完成注册。在这里面DefaultListableBeanFactory会先在自己的成员变量beanDefinitionMap检查是否已经包含了需要注册的bean，如果已经包含，会检查是否能覆盖(allowBeanDefinitionOverriding，默认是true)的配置，如果不能覆盖则会抛出异常。接下来，DefaultListableBeanFactory会将需要注册的bean维护到beanDefinitionMap的成员变量中。值得注意的是，维护到beanDefinitionMap的过程中，DefaultListableBeanFactory会加上synchronized关键字确保这段代码是线程安全的。</p>
-<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220708114448199.png?token=AGFIVUNRMHOU62IA3OPIPRLCZ75TC" alt="image-20220708114448199"></p>
-<h3 id="refresh的实现原理"><a href="#refresh的实现原理" class="headerlink" title="refresh的实现原理"></a>refresh的实现原理</h3><p>初看refresh的内部实现，你可能会觉得杂乱无章，非常的不清晰，但是实际上仔细分析的话，整个refresh还是围绕着一个主体展开的。这个主体就是BeanFactory。下面作者来总结一下refresh做了哪些事情，为什么需要refresh。</p>
-<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712213528259.png?token=AGFIVUJ2W7O6CQNLHBHZ7FTCZ75TQ" alt="image-20220712213528259" style="zoom:30%;"></p>
-<p>从上面的代码翻译过来，可以总结为以下几个步骤：</p>
-<ol>
-<li>获取BeanFactory</li>
-<li>填充BeanFactory基本信息</li>
-<li>执行PostProcessor</li>
-<li>注册特定bean</li>
-<li>BeanFactory初始化后置处理</li>
-<li>refresh后置处理</li>
-</ol>
-<h4 id="获取BeanFactory"><a href="#获取BeanFactory" class="headerlink" title="获取BeanFactory"></a>获取BeanFactory</h4><p>这是在实例化ApplicationContext的时候就已经觉得的，作者使用的AnnotationConfigApplicationContext，在实例化的时候，默认会实例化DefaultListableBeanFactory。</p>
-<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712214513768.png?token=AGFIVUOG5VXG2VK35THTGVLCZ75T4" alt="image-20220712214513768" style="zoom:50%;"></p>
-<p>因此这里获取到的BeanFactory也会是DefaultListableBeanFactory。</p>
-<h4 id="填充BeanFactory基本信息"><a href="#填充BeanFactory基本信息" class="headerlink" title="填充BeanFactory基本信息"></a>填充BeanFactory基本信息</h4><p>下面截取了一部分初始化BeanFactory的代码，可以简单了解下。</p>
-<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712214754344.png?token=AGFIVUMJ3CY37TPL7IELDT3CZ75UK" alt="image-20220712214754344" style="zoom: 33%;"></p>
-<h4 id="执行PostProcessor"><a href="#执行PostProcessor" class="headerlink" title="执行PostProcessor"></a>执行PostProcessor</h4><p>这里会执行两类PostProcessor，一类是BeanDefinitionRegistryPostProcessor，一类是BeanFactoryPostProcessor。BeanDefinitionRegistryPostProcessor可以在BeanFactory初始化后，拿到BeanDefinitionRegistry操作BeanFactory，而BeanFactoryPostProcessor允许在BeanFactory初始化后直接拿到ConfigurableListableBeanFactory对其操作。</p>
-<p>对于这两个PostProcessor我的理解是，对BeanFactory的操作进行了读写分离，BeanDefinitionRegistry负责注册BeanDefinition，ConfigurableListableBeanFactory负责读BeanDefinition。因此BeanDefinitionRegistryPostProcessor的执行是在BeanFactoryPostProcessor之前的，这样可以保证使用BeanFactoryPostProcessor也可以读我们使用BeanDefinitionRegistryPostProcessor定义的bean。</p>
-<h4 id="注册特定的bean"><a href="#注册特定的bean" class="headerlink" title="注册特定的bean"></a>注册特定的bean</h4><p>这些特定的bean包括：BeanPostProcessor, MesasgeSource, ApplicationEventMulticaster, ApplicationListener。来简单了解一下这些bean是做什么的：</p>
-<p><em>BeanPostProcessor</em> Bean后置处理器，是Bean在完成实例之前或者之后的处理器</p>
-<p><em>MessageSource</em> 不知道干嘛的</p>
-<p><em>ApplicationEventMulticaster</em> 事件广播器，主要用于注册监听器和发布事件</p>
-<p><em>ApplicationListener</em> 应用监听器，注册用户自定义的监听器</p>
-<h4 id="BeanFactory初始化后置处理"><a href="#BeanFactory初始化后置处理" class="headerlink" title="BeanFactory初始化后置处理"></a>BeanFactory初始化后置处理</h4><p>可以看到这里的后置处理主要做了实例化单例的bean：</p>
-<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220714153722283.png?token=AGFIVUMSY3TWS3IP5C545PTCZ75UU" alt="image-20220714153722283" style="zoom:50%;"></p>
-<p>BeanFactory的实例化实际上是调用了AbstractBeanFactory的getBean方法完成的。getBean方法主要完成了两件事情：</p>
-<ol>
-<li>获取bean</li>
-<li>实例化bean</li>
-</ol>
-<h4 id="refresh后置处理"><a href="#refresh后置处理" class="headerlink" title="refresh后置处理"></a>refresh后置处理</h4><p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220714155034426.png?token=AGFIVUOOUCFXHXH2VFN3ZDTCZ75VC" alt="image-20220714155034426" style="zoom:50%;"></p>
-<p>这里的逻辑非常清晰明了，从上面的代码可以看出来，完成refresh的时候会委托LifecycleProcessor执行onRefresh方法，调用Lifecycle的start方法。下一步发布一个完成refresh的事件，由监听完成refresh事件（ContextRefreshedEvent）的监听器处理。</p>
-<h3 id="Stop的实现原理"><a href="#Stop的实现原理" class="headerlink" title="Stop的实现原理"></a>Stop的实现原理</h3><p>stop的流程就相对来说比较简单，主要有有两步，分别是委托LifecycleProcessor执行Lifecycle的stop方法；发布ContextStopedEvent事件</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>作者从基础的Spring启动过程开始分析，点出了Spring容器在启动的过程中的核心点，但是Spring容器在启动时做的事情远远不止这些，里面还有很多细节点需要去发掘探索，有兴趣的读者可以基于上述的步骤深入去研究一下。看看Spring做了哪些事情只是其中的一部分，这部分可能在日常开发中遇到问题，可以意识到问题所在，但是最核心的是你能从中学到什么，Spring为什么要这么设计，比如复杂UML设计好处体现在哪里等等。作者也会持续学习，尽力理解其中的精髓和思想。</p>
-]]></content>
-      <tags>
-        <tag>Java</tag>
-        <tag>Spring</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>单例模式的四种实现</title>
-    <url>/2018/04/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%9B%9B%E7%A7%8D%E5%AE%9E%E7%8E%B0/</url>
-    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>单例模式能保证我们获取类的实例的时候，只能获取唯一的一个实例，这个实例是常驻内存的。</p>
-<h2 id="1-懒汉式"><a href="#1-懒汉式" class="headerlink" title="1. 懒汉式"></a>1. 懒汉式</h2><pre><code class="java">public class LazySingleton {
-
-    private static LazySingleton singleton;
-
-    private LazySingleton(){}
-
-    public static synchronized LazySingleton getInstance(){
-        if (singleton == null) {
-            singleton = new LazySingleton();
-        }
-        return singleton;
-    }
-}
-</code></pre>
-<p>懒汉式的特点就是在获取实例的时候才进行实例化，有懒加载的意思。在获取实例的时候使用synchronized关键字是为了保证线程安全。但是在获取实例的方法getInstance()中为了保证线程安全，对整个方法加锁，锁的粒度较大。</p>
-<h2 id="2-饿汉式"><a href="#2-饿汉式" class="headerlink" title="2. 饿汉式"></a>2. 饿汉式</h2><pre><code class="java">public class HungerSingleton {
-
-    private static final HungerSingleton SINGLETON = new HungerSingleton();
-
-    private HungerSingleton(){}
-
-    public static HungerSingleton getInstance(){
-        return SINGLETON;
-    }
-
-}
-</code></pre>
-<p>饿汉式会在类加载的时候进行初始化，这里因为该实例是不可变的，因此不存在线程不安全的问题。但是有个问题要注意到，就是容易占用额外的空间，原因是非需要时就创建了该实例。</p>
-<h2 id="3-双重检测锁"><a href="#3-双重检测锁" class="headerlink" title="3. 双重检测锁"></a>3. 双重检测锁</h2><pre><code class="java">public class DoubleCheckSingleton {
-
-    private static volatile DoubleCheckSingleton singleton;
-
-    private DoubleCheckSingleton(){}
-
-    public static DoubleCheckSingleton getInstance(){
-        if(singleton == null){
-            synchronized(DoubleCheckSingleton.class){
-                if(singleton == null){
-                    singleton = new DoubleCheckSingleton();
-                }
-            }
-        }
-        return singleton;
-    }
-
-}
-</code></pre>
-<p>在高并发的情况下，为了保证线程安全，不得不对getInstance()方法加锁，这里使用了双重检测的方式，先检测singleton是否为空，再进行加锁，然后在判断实singleton是否为空，如果为空再实例化。举个例子，有线程A和线程B同时获取DoubleCheckSingleton的实例，有几种情况</p>
-<p>如果线程A经过第一层检测之后，对该类的class实例加锁，然后经过第二层检测，随后实例化对象。此时线程B才去进行第一层检测，直接返回该实例。</p>
-<p>如果线程A经过第一层检测之后，线程B也经过的第一层检测，线程A对该类的class实例加锁，然后经过第二层检测，实例化对象。线程B因为无法获取锁而阻塞，当线程A退出synchronized代码块之后释放锁，线程B对该类的class实例加锁，经过第二层判断，此时singleton非空，因此退出该代码块返回singleton的实例。</p>
-<p>上述的线程A换做线程B，线程B换做线程A，一样的分析过程。</p>
-<p>有同学会注意到，singleton是被volatile修饰的，这里为什么要使用volatile修饰呢？网上说是为了防止jvm指令重排序，在线程A中，因为在实例化的过程中是非原子操作，jvm有可能会先将singleton的引用指向内存某地址，但是该地址空间中的初始化过程还没有完成，此时线程B在其他地方使用该实例就会出现异常。但是本人也有疑点，在《深入理解Java虚拟机》一书中提到，synchronized保证了原子性，可见性和防止指令重排序，何来非原子操作，何来指令重排序？本人也写过相关的实验，并没有发现线程不安全的情况。但本人才疏学浅，可能理解有误，希望各位同学指教，可能在某些场景下真的会发生线程不安全的情况。</p>
-<h2 id="4-枚举"><a href="#4-枚举" class="headerlink" title="4. 枚举"></a>4. 枚举</h2><pre><code class="java">public enum EnumSingleton {
-    ENUM_SINGLETON;
-
-    private EnumSingletonClazz enumSingletonClazz;
-
-    EnumSingleton(){
-        enumSingletonClazz = new EnumSingletonClazz();
-    }
-
-    public EnumSingletonClazz getInstance(){
-        return enumSingletonClazz;
-    }
-}
-</code></pre>
-<p>枚举中的每个元素都是public static final的，而且枚举类的构造方法也是私有的，我们在调用枚举实例的时候会枚举元素会被实例化，因为枚举元素是public static final的，因此枚举实例只有一个，在枚举元素实例化的时候我们将我们要实现单例的类也实例化，从而实现单例。在《Effective Java》一书中推荐使用这种方式。</p>
-]]></content>
-      <tags>
-        <tag>Java</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>切换Brew软件源</title>
     <url>/2022/06/26/%E5%88%87%E6%8D%A2Brew%E8%BD%AF%E4%BB%B6%E6%BA%90/</url>
     <content><![CDATA[<p>Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。</p>
@@ -1227,6 +1151,82 @@ $ brew update
 ]]></content>
       <tags>
         <tag>小记</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>单例模式的四种实现</title>
+    <url>/2018/04/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%9B%9B%E7%A7%8D%E5%AE%9E%E7%8E%B0/</url>
+    <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>单例模式能保证我们获取类的实例的时候，只能获取唯一的一个实例，这个实例是常驻内存的。</p>
+<h2 id="1-懒汉式"><a href="#1-懒汉式" class="headerlink" title="1. 懒汉式"></a>1. 懒汉式</h2><pre><code class="java">public class LazySingleton {
+
+    private static LazySingleton singleton;
+
+    private LazySingleton(){}
+
+    public static synchronized LazySingleton getInstance(){
+        if (singleton == null) {
+            singleton = new LazySingleton();
+        }
+        return singleton;
+    }
+}
+</code></pre>
+<p>懒汉式的特点就是在获取实例的时候才进行实例化，有懒加载的意思。在获取实例的时候使用synchronized关键字是为了保证线程安全。但是在获取实例的方法getInstance()中为了保证线程安全，对整个方法加锁，锁的粒度较大。</p>
+<h2 id="2-饿汉式"><a href="#2-饿汉式" class="headerlink" title="2. 饿汉式"></a>2. 饿汉式</h2><pre><code class="java">public class HungerSingleton {
+
+    private static final HungerSingleton SINGLETON = new HungerSingleton();
+
+    private HungerSingleton(){}
+
+    public static HungerSingleton getInstance(){
+        return SINGLETON;
+    }
+
+}
+</code></pre>
+<p>饿汉式会在类加载的时候进行初始化，这里因为该实例是不可变的，因此不存在线程不安全的问题。但是有个问题要注意到，就是容易占用额外的空间，原因是非需要时就创建了该实例。</p>
+<h2 id="3-双重检测锁"><a href="#3-双重检测锁" class="headerlink" title="3. 双重检测锁"></a>3. 双重检测锁</h2><pre><code class="java">public class DoubleCheckSingleton {
+
+    private static volatile DoubleCheckSingleton singleton;
+
+    private DoubleCheckSingleton(){}
+
+    public static DoubleCheckSingleton getInstance(){
+        if(singleton == null){
+            synchronized(DoubleCheckSingleton.class){
+                if(singleton == null){
+                    singleton = new DoubleCheckSingleton();
+                }
+            }
+        }
+        return singleton;
+    }
+
+}
+</code></pre>
+<p>在高并发的情况下，为了保证线程安全，不得不对getInstance()方法加锁，这里使用了双重检测的方式，先检测singleton是否为空，再进行加锁，然后在判断实singleton是否为空，如果为空再实例化。举个例子，有线程A和线程B同时获取DoubleCheckSingleton的实例，有几种情况</p>
+<p>如果线程A经过第一层检测之后，对该类的class实例加锁，然后经过第二层检测，随后实例化对象。此时线程B才去进行第一层检测，直接返回该实例。</p>
+<p>如果线程A经过第一层检测之后，线程B也经过的第一层检测，线程A对该类的class实例加锁，然后经过第二层检测，实例化对象。线程B因为无法获取锁而阻塞，当线程A退出synchronized代码块之后释放锁，线程B对该类的class实例加锁，经过第二层判断，此时singleton非空，因此退出该代码块返回singleton的实例。</p>
+<p>上述的线程A换做线程B，线程B换做线程A，一样的分析过程。</p>
+<p>有同学会注意到，singleton是被volatile修饰的，这里为什么要使用volatile修饰呢？网上说是为了防止jvm指令重排序，在线程A中，因为在实例化的过程中是非原子操作，jvm有可能会先将singleton的引用指向内存某地址，但是该地址空间中的初始化过程还没有完成，此时线程B在其他地方使用该实例就会出现异常。但是本人也有疑点，在《深入理解Java虚拟机》一书中提到，synchronized保证了原子性，可见性和防止指令重排序，何来非原子操作，何来指令重排序？本人也写过相关的实验，并没有发现线程不安全的情况。但本人才疏学浅，可能理解有误，希望各位同学指教，可能在某些场景下真的会发生线程不安全的情况。</p>
+<h2 id="4-枚举"><a href="#4-枚举" class="headerlink" title="4. 枚举"></a>4. 枚举</h2><pre><code class="java">public enum EnumSingleton {
+    ENUM_SINGLETON;
+
+    private EnumSingletonClazz enumSingletonClazz;
+
+    EnumSingleton(){
+        enumSingletonClazz = new EnumSingletonClazz();
+    }
+
+    public EnumSingletonClazz getInstance(){
+        return enumSingletonClazz;
+    }
+}
+</code></pre>
+<p>枚举中的每个元素都是public static final的，而且枚举类的构造方法也是私有的，我们在调用枚举实例的时候会枚举元素会被实例化，因为枚举元素是public static final的，因此枚举实例只有一个，在枚举元素实例化的时候我们将我们要实现单例的类也实例化，从而实现单例。在《Effective Java》一书中推荐使用这种方式。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
       </tags>
   </entry>
   <entry>
