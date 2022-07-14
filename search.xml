@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>CentOS6安装mysql5.7</title>
-    <url>/2018/10/14/CentOS6-%E5%AE%89%E8%A3%85-mysql5-7/</url>
+    <url>/shanbo/2018/10/14/CentOS6-%E5%AE%89%E8%A3%85-mysql5-7/</url>
     <content><![CDATA[<p>如何在CentOS6上安装mysql5.7?</p>
 <ol>
 <li>Step1: 检测系统是否自带安装mysql</li>
@@ -65,12 +65,12 @@ chkconfig mysqld on
   </entry>
   <entry>
     <title>Spring启动流程</title>
-    <url>/2022/07/14/Spring%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</url>
+    <url>/shanbo/2022/07/14/Spring%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。</p>
 <p>Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。</p>
 <h2 id="核心步骤"><a href="#核心步骤" class="headerlink" title="核心步骤"></a>核心步骤</h2><h3 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h3><h3 id="refresh"><a href="#refresh" class="headerlink" title="refresh"></a>refresh</h3><h3 id="stop"><a href="#stop" class="headerlink" title="stop"></a>stop</h3><h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><h3 id="scan实现原理"><a href="#scan实现原理" class="headerlink" title="scan实现原理"></a>scan实现原理</h3><p>既然我们知道了scan的作用是找到定义的bean，那么spring是如何找到这些bean的呢？spring在这中间究竟做了哪些事情，接下来作者将揭开spring scan的神秘面纱，从源码层面开始分析scan的工作原理。</p>
 <p>作者将使用AnnotationConfigApplicationContext作为例子，开始剖析scan的过程，新建一个AnnotationConfigApplicationContext的实例，可以发现其提供了一个scan的方法，这个方法的实现实际上是由ClassPathBeanDefinitionScanner实现的，接着往下深挖，看看ClassPathBeanDefinitionScanner在scan的时候做了什么事情。下面是作者总结的scan主要实现流程。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/KevinLeung611/image-collections@master/uPic/image-20220706213218202.png" alt="image-20220706213218202" style="zoom:50%;"></p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220706213218202.png?token=GHSAT0AAAAAABWTIENX5MYRWNROJGPXKJOCYWP7KPQ" alt="image-20220706213218202" style="zoom:50%;"></p>
 <p>有几个关键点需要搞清楚的：</p>
 <ol>
 <li>ClassPathDefinitionScanner是如何找到候选组件的?</li>
@@ -81,7 +81,7 @@ chkconfig mysqld on
 <p>扫描根目录下列的类定义由PathMatchingResourcePatternResolver完成，该类扫描组件的方式主要有两种，一种是类路径下扫描，另外一种是绝对路径扫描。扫描组件的方式主要是通过给定路径的前缀决定的，如果前缀是classpath:*的情况下，spring会在类路径下指定的basePackage找出所有的类转换成Resource实例，接着遍历每一个Resource实例，读取当前Resource对应的类文件解析成MetadataReader，再判断当前MetadataReader是否属于候选组件。判断当前MetadataReader是否属于候选组件的依据是includeFilter和excludeFilter，在用户没有自定义的情况下，spring提供默认的includeFilter，分别是三个AnnotationTypeFilter，使用Component定义组件的Filter，使用Named定义组件的filter还有使用ManagedBean定义组件的filter。</p>
 <p>从上面spring根据basePackage扫描组件的实现方式可以看出，如果在指定basePackage下的类过多的情况，通过IO加载类的方式会显得效率低下，而且加载出来的Resource使用一个数组的结构保存，当类的数量过多，数组的大小也会随着类的数量呈线性膨胀。所以spring推出了另外一个解决方案，就是通过索引的方式完成组件的扫描。</p>
 <p>下面是ClassPathDefinitionScan的寻找候选组件的流程图</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220706190237762.png" alt="image-20220706190237762" style="zoom:50%;"></p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220706190237762.png?token=AGFIVUO6ZEF2R7LOIRCF4ILCZ75SI" alt="image-20220706190237762" style="zoom:50%;"></p>
 <h4 id="候选组件初始化"><a href="#候选组件初始化" class="headerlink" title="候选组件初始化"></a>候选组件初始化</h4><ol>
 <li>Scope设置</li>
 <li>init方法名初始化</li>
@@ -91,9 +91,9 @@ chkconfig mysqld on
 <p>init和destroy方法名设置默认为空，通过BeanDefinitionDefaults控制</p>
 <h4 id="注册候选组件到BeanFactory"><a href="#注册候选组件到BeanFactory" class="headerlink" title="注册候选组件到BeanFactory"></a>注册候选组件到BeanFactory</h4><p>在注册候选组件到BeanFactory之前，Scanner会检查当前需要注册的bean是否重复，如果重复会抛出ConflictingBeanDefinitionException。</p>
 <p>因为ClassPathBeanDefinitionScanner是通过给定的BeanDefinitionRegistry来决定如何注册到beanFactory的，因为这本例子作者使用的是AnnotationConfigApplicationContext，在初始化AnnotationConfigApplicationContext时，会将registry注入到scanner，而注入的registry实际上是GenericApplicationContext，GenericApplicationContext会调用DefaultListableBeanFactory的registryBeanDefinition方法完成注册。在这里面DefaultListableBeanFactory会先在自己的成员变量beanDefinitionMap检查是否已经包含了需要注册的bean，如果已经包含，会检查是否能覆盖(allowBeanDefinitionOverriding，默认是true)的配置，如果不能覆盖则会抛出异常。接下来，DefaultListableBeanFactory会将需要注册的bean维护到beanDefinitionMap的成员变量中。值得注意的是，维护到beanDefinitionMap的过程中，DefaultListableBeanFactory会加上synchronized关键字确保这段代码是线程安全的。</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220708114448199.png" alt="image-20220708114448199"></p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220708114448199.png?token=AGFIVUNRMHOU62IA3OPIPRLCZ75TC" alt="image-20220708114448199"></p>
 <h3 id="refresh的实现原理"><a href="#refresh的实现原理" class="headerlink" title="refresh的实现原理"></a>refresh的实现原理</h3><p>初看refresh的内部实现，你可能会觉得杂乱无章，非常的不清晰，但是实际上仔细分析的话，整个refresh还是围绕着一个主体展开的。这个主体就是BeanFactory。下面作者来总结一下refresh做了哪些事情，为什么需要refresh。</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712213528259.png" alt="image-20220712213528259" style="zoom:30%;"></p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712213528259.png?token=AGFIVUJ2W7O6CQNLHBHZ7FTCZ75TQ" alt="image-20220712213528259" style="zoom:30%;"></p>
 <p>从上面的代码翻译过来，可以总结为以下几个步骤：</p>
 <ol>
 <li>获取BeanFactory</li>
@@ -104,10 +104,10 @@ chkconfig mysqld on
 <li>refresh后置处理</li>
 </ol>
 <h4 id="获取BeanFactory"><a href="#获取BeanFactory" class="headerlink" title="获取BeanFactory"></a>获取BeanFactory</h4><p>这是在实例化ApplicationContext的时候就已经觉得的，作者使用的AnnotationConfigApplicationContext，在实例化的时候，默认会实例化DefaultListableBeanFactory。</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214513768.png" alt="image-20220712214513768" style="zoom:50%;"></p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712214513768.png?token=AGFIVUOG5VXG2VK35THTGVLCZ75T4" alt="image-20220712214513768" style="zoom:50%;"></p>
 <p>因此这里获取到的BeanFactory也会是DefaultListableBeanFactory。</p>
 <h4 id="填充BeanFactory基本信息"><a href="#填充BeanFactory基本信息" class="headerlink" title="填充BeanFactory基本信息"></a>填充BeanFactory基本信息</h4><p>下面截取了一部分初始化BeanFactory的代码，可以简单了解下。</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214754344.png" alt="image-20220712214754344" style="zoom: 33%;"></p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220712214754344.png?token=AGFIVUMJ3CY37TPL7IELDT3CZ75UK" alt="image-20220712214754344" style="zoom: 33%;"></p>
 <h4 id="执行PostProcessor"><a href="#执行PostProcessor" class="headerlink" title="执行PostProcessor"></a>执行PostProcessor</h4><p>这里会执行两类PostProcessor，一类是BeanDefinitionRegistryPostProcessor，一类是BeanFactoryPostProcessor。BeanDefinitionRegistryPostProcessor可以在BeanFactory初始化后，拿到BeanDefinitionRegistry操作BeanFactory，而BeanFactoryPostProcessor允许在BeanFactory初始化后直接拿到ConfigurableListableBeanFactory对其操作。</p>
 <p>对于这两个PostProcessor我的理解是，对BeanFactory的操作进行了读写分离，BeanDefinitionRegistry负责注册BeanDefinition，ConfigurableListableBeanFactory负责读BeanDefinition。因此BeanDefinitionRegistryPostProcessor的执行是在BeanFactoryPostProcessor之前的，这样可以保证使用BeanFactoryPostProcessor也可以读我们使用BeanDefinitionRegistryPostProcessor定义的bean。</p>
 <h4 id="注册特定的bean"><a href="#注册特定的bean" class="headerlink" title="注册特定的bean"></a>注册特定的bean</h4><p>这些特定的bean包括：BeanPostProcessor, MesasgeSource, ApplicationEventMulticaster, ApplicationListener。来简单了解一下这些bean是做什么的：</p>
@@ -116,13 +116,13 @@ chkconfig mysqld on
 <p><em>ApplicationEventMulticaster</em> 事件广播器，主要用于注册监听器和发布事件</p>
 <p><em>ApplicationListener</em> 应用监听器，注册用户自定义的监听器</p>
 <h4 id="BeanFactory初始化后置处理"><a href="#BeanFactory初始化后置处理" class="headerlink" title="BeanFactory初始化后置处理"></a>BeanFactory初始化后置处理</h4><p>可以看到这里的后置处理主要做了实例化单例的bean：</p>
-<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714153722283.png" alt="image-20220714153722283" style="zoom:50%;"></p>
+<p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220714153722283.png?token=AGFIVUMSY3TWS3IP5C545PTCZ75UU" alt="image-20220714153722283" style="zoom:50%;"></p>
 <p>BeanFactory的实例化实际上是调用了AbstractBeanFactory的getBean方法完成的。getBean方法主要完成了两件事情：</p>
 <ol>
 <li>获取bean</li>
 <li>实例化bean</li>
 </ol>
-<h4 id="refresh后置处理"><a href="#refresh后置处理" class="headerlink" title="refresh后置处理"></a>refresh后置处理</h4><p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714155034426.png" alt="image-20220714155034426" style="zoom:50%;"></p>
+<h4 id="refresh后置处理"><a href="#refresh后置处理" class="headerlink" title="refresh后置处理"></a>refresh后置处理</h4><p><img src="https://raw.githubusercontent.com/KevinLeung611/image-collections/master/uPic/image-20220714155034426.png?token=AGFIVUOOUCFXHXH2VFN3ZDTCZ75VC" alt="image-20220714155034426" style="zoom:50%;"></p>
 <p>这里的逻辑非常清晰明了，从上面的代码可以看出来，完成refresh的时候会委托LifecycleProcessor执行onRefresh方法，调用Lifecycle的start方法。下一步发布一个完成refresh的事件，由监听完成refresh事件（ContextRefreshedEvent）的监听器处理。</p>
 <h3 id="Stop的实现原理"><a href="#Stop的实现原理" class="headerlink" title="Stop的实现原理"></a>Stop的实现原理</h3><p>stop的流程就相对来说比较简单，主要有有两步，分别是委托LifecycleProcessor执行Lifecycle的stop方法；发布ContextStopedEvent事件</p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>作者从基础的Spring启动过程开始分析，点出了Spring容器在启动的过程中的核心点，但是Spring容器在启动时做的事情远远不止这些，里面还有很多细节点需要去发掘探索，有兴趣的读者可以基于上述的步骤深入去研究一下。看看Spring做了哪些事情只是其中的一部分，这部分可能在日常开发中遇到问题，可以意识到问题所在，但是最核心的是你能从中学到什么，Spring为什么要这么设计，比如复杂UML设计好处体现在哪里等等。作者也会持续学习，尽力理解其中的精髓和思想。</p>
@@ -133,8 +133,196 @@ chkconfig mysqld on
       </tags>
   </entry>
   <entry>
+    <title>Java容器：ArrayList源码解析</title>
+    <url>/shanbo/2018/03/31/Java%E5%AE%B9%E5%99%A8%EF%BC%9AArrayList%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/</url>
+    <content><![CDATA[<h2 id="ArrayList"><a href="#ArrayList" class="headerlink" title="ArrayList"></a>ArrayList</h2><p>关于ArrayList，很多同学都不会感觉到陌生，它的存在就好像我们上学用的书包，方便而常用。只是这个“书包”，是可以自己变大的。是不是觉得很不可思议？当里面的“书本”达到一定数量了，这个“书包”会自动扩容，让你能放更多的“书”。但是我本人希望书包能够越做越小，但里面能放更多的书，哈哈。好了，那么ArrayList为什么能做到这一点？下面我们来探讨一下。</p>
+<h2 id="ArrayList实现的接口"><a href="#ArrayList实现的接口" class="headerlink" title="ArrayList实现的接口"></a>ArrayList实现的接口</h2><p>我们来看看ArrayList的class定义(jdk1.9，不同的jdk版本可能会有不同的实现，但思想是一致的)</p>
+<pre><code class="Java">public class ArrayList&lt;E&gt; extends AbstractList&lt;E&gt;
+        implements List&lt;E&gt;, RandomAccess, Cloneable, java.io.Serializable
+</code></pre>
+<p>ArrayList继承了AbstractList抽象列表，里面定义了诸如add，get，remove，addAll，clear等抽象方法，同时ArrayList实现了List，RandomAccess，Cloneable和Serializable接口。</p>
+<p>点开AbstractList可以发现，AbstractList也是实现了List接口的，可能有些同学会问，为什么ArrayList继承了AbstractList还需要实现List接口呢？网上关于这个问题，大多是这样的说法</p>
+<blockquote>
+<p>It’s a way to remember that this class really implements that interface.It won’t have any bad effect and it can help to understand the code without going through the complete hierarchy of the given class.</p>
+</blockquote>
+<p>意思是通过这种方式增加代码的可读性，提醒阅读者，ArrayList就是一个List，而无需查看AbstractList进行确认。</p>
+<p>ArrayList还实现了RandomAcesss，Cloneable和Serializable接口，表明这个类是可随机访问，可克隆和可序列化的。</p>
+<h2 id="ArrayList定义的常量"><a href="#ArrayList定义的常量" class="headerlink" title="ArrayList定义的常量"></a>ArrayList定义的常量</h2><pre><code class="java">    private static final long serialVersionUID = 8683452581122892189L;
+
+    /**
+     * Default initial capacity.
+     */
+    private static final int DEFAULT_CAPACITY = 10;
+
+    /**
+     * Shared empty array instance used for empty instances.
+     */
+    private static final Object[] EMPTY_ELEMENTDATA = {};
+
+    /**
+     * Shared empty array instance used for default sized empty instances. We
+     * distinguish this from EMPTY_ELEMENTDATA to know how much to inflate when
+     * first element is added.
+     */
+    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
+
+    /**
+     * The array buffer into which the elements of the ArrayList are stored.
+     * The capacity of the ArrayList is the length of this array buffer. Any
+     * empty ArrayList with elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA
+     * will be expanded to DEFAULT_CAPACITY when the first element is added.
+     */
+    transient Object[] elementData; // non-private to simplify nested class access
+
+    /**
+     * The size of the ArrayList (the number of elements it contains).
+     *
+     * @serial
+     */
+    private int size;
+</code></pre>
+<p>这里我们关注几个点，DEFAULT_CAPACITY，EMPTY_ELEMENTDATA，elementData，size</p>
+<p>关于serialVersionUID可能有些同学会有疑问，这里简单解释一下，serialVersionUID适用于Java的序列化机制。简单来说，Java的序列化机制是通过判断类的serialVersionUID来验证版本一致性的。在进行反序列化时，JVM会把传来的字节流中的serialVersionUID与本地相应实体类的serialVersionUID进行比较，如果相同就认为是一致的，可以进行反序列化，否则就会出现序列化版本不一致的异常，即是InvalidCastException。</p>
+<h3 id="DEFAULT-CAPACITY"><a href="#DEFAULT-CAPACITY" class="headerlink" title="DEFAULT_CAPACITY"></a>DEFAULT_CAPACITY</h3><p>DEFAULT_CAPACITY定义了实例化ArrayList时，ArrayList默认的容量大小，这个容量大小是在第一次往ArrayList中添加元素的时候才会初始化的。</p>
+<pre><code class="java">private int newCapacity(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = elementData.length;
+        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
+        if (newCapacity - minCapacity &lt;= 0) {
+            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+                return Math.max(DEFAULT_CAPACITY, minCapacity);
+            if (minCapacity &lt; 0) // overflow
+                throw new OutOfMemoryError();
+            return minCapacity;
+        }
+        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
+            ? newCapacity
+            : hugeCapacity(minCapacity);
+    }
+</code></pre>
+<p>当我们往ArrayList中添加元素时，判断如果这个List的size是否等于目前elementData的限定长度，如果是，就需要扩容，如果ArrayList是刚创建的，那么一开始往ArrayList中添加元素的这个判断就是true，扩容时，ArrayList采取的方式是使用Arrays.copyOf(elementData, newCapacity(minCapacity))方法复制elementData，并根据扩大的容量新建一个数组再赋值给elementData，这样就完成了扩容，上面的newCapacity(minCapacity)就是扩容的过程。这里的minCapacity一般是指ArrayList原有的size+1，因为扩容最起码增加一个容量嘛，这很容易理解。</p>
+<p>扩容公式：int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
+<p>如果计算出新的容量比最小容量小，通常的情况是把最小容量返回给调用者。当第一次添加元素的时候新的容量就比最小容量小，并且elementData也等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，这里有同学可能存有疑问，为什么这两个对象会相等？其实我们在不指定容量的情况下实例化ArrayList的时候，就把DEFAULTCAPACITY_EMPTY_ELEMENTDATA赋值给了elementData</p>
+<pre><code class="java">/**
+     * Constructs an empty list with an initial capacity of ten.
+     */
+    public ArrayList() {
+        this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
+    }
+</code></pre>
+<p>这是扩展出的新容量大小就是DEFAULT_CAPACITY</p>
+<h3 id="EMPTY-ELEMENTDATA"><a href="#EMPTY-ELEMENTDATA" class="headerlink" title="EMPTY_ELEMENTDATA"></a>EMPTY_ELEMENTDATA</h3><p>EMPTY_ELEMENTDATA的作用通过注释也能很清楚是干什么的，但是通过注释去了解程序我是不建议的，毕竟注释不是最真实的。</p>
+<p>通过查看调用EMPTY_ELEMENTDATA的地方可以看出，当我们实例化ArrayList的时候指定容量为0，EMPTY_ELEMENTDATA会被赋值给elementData，这就引发了另一问题，上面讲到，在扩容的时候会判断elementData是否等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，如果不等会直接返回最小容量，这就导致了在元素不多，甚至只有几个的时候，扩容的次数会变得频繁。</p>
+<p>什么时候elementData是EMPTY_ELEMENTDATA？</p>
+<ol>
+<li><p>当我们实例化ArrayList指定容量大小为0</p>
+</li>
+<li><p>当传递一个Collection容量大小为0</p>
+</li>
+<li><p>当调用trimToSize()，ArrayList的size为0</p>
+</li>
+<li><p>从对象输入流中读取一个ArrayList时，size为0</p>
+</li>
+</ol>
+<h3 id="elementData"><a href="#elementData" class="headerlink" title="elementData"></a>elementData</h3><p>通过上面的描述，相信同学们对elementData也有了一定的认识了。elementData其实就是存储数据的对象，我们往ArrayList中添加元素时，接收元素的就是elementData。需要注意的是，elementData的length并不等于ArrayList的size，elementData的length指的是ArrayList的capacity（容量），而size指的是ArrayList中元素的个数，当添加了一个元素的时候size会加1，而elementData的length不一定会改变。</p>
+<h3 id="ArrayList精髓"><a href="#ArrayList精髓" class="headerlink" title="ArrayList精髓"></a>ArrayList精髓</h3><h4 id="扩容过程"><a href="#扩容过程" class="headerlink" title="扩容过程"></a>扩容过程</h4><p>ArrayList是如何做到自动扩容的，或者说ArrayList是如何做到合理扩容的。先来看一下添加元素相关的方法</p>
+<pre><code class="java">/**
+     * This helper method split out from add(E) to keep method
+     * bytecode size under 35 (the -XX:MaxInlineSize default value),
+     * which helps when add(E) is called in a C1-compiled loop.
+     */
+    private void add(E e, Object[] elementData, int s) {
+        if (s == elementData.length)
+            elementData = grow();
+        elementData[s] = e;
+        size = s + 1;
+    }
+
+    /**
+     * Appends the specified element to the end of this list.
+     *
+     * @param e element to be appended to this list
+     * @return {@code true} (as specified by {@link Collection#add})
+     */
+    public boolean add(E e) {
+        modCount++;
+        add(e, elementData, size);
+        return true;
+    }
+
+    /**
+     * Increases the capacity to ensure that it can hold at least the
+     * number of elements specified by the minimum capacity argument.
+     *
+     * @param minCapacity the desired minimum capacity
+     * @throws OutOfMemoryError if minCapacity is less than zero
+     */
+    private Object[] grow(int minCapacity) {
+        return elementData = Arrays.copyOf(elementData,
+                                           newCapacity(minCapacity));
+    }
+
+    private Object[] grow() {
+        return grow(size + 1);
+    }
+
+    /**
+     * Returns a capacity at least as large as the given minimum capacity.
+     * Returns the current capacity increased by 50% if that suffices.
+     * Will not return a capacity greater than MAX_ARRAY_SIZE unless
+     * the given minimum capacity is greater than MAX_ARRAY_SIZE.
+     *
+     * @param minCapacity the desired minimum capacity
+     * @throws OutOfMemoryError if minCapacity is less than zero
+     */
+    private int newCapacity(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = elementData.length;
+        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
+        if (newCapacity - minCapacity &lt;= 0) {
+            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+                return Math.max(DEFAULT_CAPACITY, minCapacity);
+            if (minCapacity &lt; 0) // overflow
+                throw new OutOfMemoryError();
+            return minCapacity;
+        }
+        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
+            ? newCapacity
+            : hugeCapacity(minCapacity);
+    }
+</code></pre>
+<p>当我们调用ArrayList的add()方法时，会先判断ArrayList的size是否等于elementData的length，也就是问一下，目前的元素的个数是否达到了容量的大小，如果达到了容量大小，就需要扩容了，怎么扩容？调用grow()方法，grow()方法实际上就是使用Arrays.copyOf()根据elementData复制出具有相同元素并增加相应的容量的数组赋值给elementData完成扩容。关键是怎么扩容？过程在newCapacity()，首先计算新容量，扩容因数是0.5</p>
+<p>int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
+<p>当新容量比最小容量小或相等的时候，就用最小容量大小，因为此时ArrayList中的元素并不多，也就意味着前期ArrayList通过时间的消耗来换取空间的减少，元素不多说明不需要太大的容量，如果元素不多就进行大扩容必然是不合适的，因此开发者考虑到元素不多的情况的没必要进行大扩容，只需要最小扩容即可。但是每次添加元素的时候会导致扩容次数增加，因此必然会增加了时间的消耗。</p>
+<p>关于elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA的判断，请参考本文的<a href="#DEFAULT_CAPACITY">DEFAULT_CAPACITY</a></p>
+<p>当新容量比最小容量大的时候，就返回新容量的大小，但是新容量的大小不能比最大容量大，MAX_ARRAY_SIZE定义了最大容量</p>
+<pre><code class="java">/**
+     * The maximum size of array to allocate (unless necessary).
+     * Some VMs reserve some header words in an array.
+     * Attempts to allocate larger arrays may result in
+     * OutOfMemoryError: Requested array size exceeds VM limit
+     */
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+</code></pre>
+<p>如果新容量比最大容量大，那么还会有一层保障机制，因为我们可以看到MAX_ARRAY_SIZE其实是减8了，这个时候，利用最小容量扩容，实际就是增大8个容量</p>
+<pre><code class="java">private static int hugeCapacity(int minCapacity) {
+        if (minCapacity &lt; 0) // overflow
+            throw new OutOfMemoryError();
+        return (minCapacity &gt; MAX_ARRAY_SIZE)
+            ? Integer.MAX_VALUE
+            : MAX_ARRAY_SIZE;
+    }
+</code></pre>
+<p>如果达到了最大容量，再添加元素的时候，无疑int的值的最高位会置1，表示一个负数，那么在扩容的时候就会抛出OutOfMemoryError。</p>
+]]></content>
+      <tags>
+        <tag>Java</tag>
+        <tag>Java集合类</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Spring依赖注入实现原理</title>
-    <url>/2019/03/01/Spring%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</url>
+    <url>/shanbo/2019/03/01/Spring%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</url>
     <content><![CDATA[<h2 id="实现猜想"><a href="#实现猜想" class="headerlink" title="实现猜想"></a>实现猜想</h2><p>Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从beanFactory中找出合适的bean注入。这是基本的思路，下面我将采用自顶向下的思路来对Spring依赖注入的源码进行剖析。</p>
 <h2 id="AbstractBeanFactory"><a href="#AbstractBeanFactory" class="headerlink" title="AbstractBeanFactory"></a>AbstractBeanFactory</h2><p>在这个类中定义了获取Bean的方法</p>
 <pre><code class="java">/**
@@ -280,7 +468,7 @@ public PropertyValues postProcessPropertyValues(
   </entry>
   <entry>
     <title>Java并发编程：volatile关键字</title>
-    <url>/2018/03/29/Java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%EF%BC%9Avolatile%E5%85%B3%E9%94%AE%E5%AD%97/</url>
+    <url>/shanbo/2018/03/29/Java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%EF%BC%9Avolatile%E5%85%B3%E9%94%AE%E5%AD%97/</url>
     <content><![CDATA[<h2 id="volatile关键字"><a href="#volatile关键字" class="headerlink" title="volatile关键字"></a>volatile关键字</h2><p>volatile这个关键字可能很多朋友都听说过，或许也都用过。在Java 5之前，它是一个备受争议的关键字，因为在程序中使用它往往会导致出人意料的结果。在Java 5之后，volatile关键字才得以重获生机。volatile关键字虽然从字面上理解起来比较简单，但是要用好不是一件容易的事情。由于volatile关键字是与Java的内存模型有关的，因此在讲述volatile关键之前，我们先来了解一下与内存模型相关的概念和知识，然后分析了volatile关键字的实现原理，最后给出了几个使用volatile关键字的场景。</p>
 <h2 id="内存模型的相关概念"><a href="#内存模型的相关概念" class="headerlink" title="内存模型的相关概念"></a>内存模型的相关概念</h2><p>大家都知道，计算机在执行程序时，每条指令都是在CPU中执行的，而执行指令过程中，势必涉及到数据的读取和写入。由于程序运行过程中的临时数据是存放在主存（物理内存）当中的，这时就存在一个问题，由于CPU执行速度很快，而从内存读取数据和向内存写入数据的过程跟CPU执行指令的速度比起来要慢的多，因此如果任何时候对数据的操作都要通过和内存的交互来进行，会大大降低指令执行的速度。因此在CPU里面就有了高速缓存。</p>
 <p>也就是，当程序在运行过程中，会将运算需要的数据从主存复制一份到CPU的高速缓存当中，那么CPU进行计算时就可以直接从它的高速缓存读取数据和向其中写入数据，当运算结束之后，再将高速缓存中的数据刷新到主存当中。举个简单的例子，比如下面的这段代码：</p>
@@ -649,196 +837,8 @@ doSomethingwithconfig(context);
       </tags>
   </entry>
   <entry>
-    <title>Java容器：ArrayList源码解析</title>
-    <url>/2018/03/31/Java%E5%AE%B9%E5%99%A8%EF%BC%9AArrayList%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/</url>
-    <content><![CDATA[<h2 id="ArrayList"><a href="#ArrayList" class="headerlink" title="ArrayList"></a>ArrayList</h2><p>关于ArrayList，很多同学都不会感觉到陌生，它的存在就好像我们上学用的书包，方便而常用。只是这个“书包”，是可以自己变大的。是不是觉得很不可思议？当里面的“书本”达到一定数量了，这个“书包”会自动扩容，让你能放更多的“书”。但是我本人希望书包能够越做越小，但里面能放更多的书，哈哈。好了，那么ArrayList为什么能做到这一点？下面我们来探讨一下。</p>
-<h2 id="ArrayList实现的接口"><a href="#ArrayList实现的接口" class="headerlink" title="ArrayList实现的接口"></a>ArrayList实现的接口</h2><p>我们来看看ArrayList的class定义(jdk1.9，不同的jdk版本可能会有不同的实现，但思想是一致的)</p>
-<pre><code class="Java">public class ArrayList&lt;E&gt; extends AbstractList&lt;E&gt;
-        implements List&lt;E&gt;, RandomAccess, Cloneable, java.io.Serializable
-</code></pre>
-<p>ArrayList继承了AbstractList抽象列表，里面定义了诸如add，get，remove，addAll，clear等抽象方法，同时ArrayList实现了List，RandomAccess，Cloneable和Serializable接口。</p>
-<p>点开AbstractList可以发现，AbstractList也是实现了List接口的，可能有些同学会问，为什么ArrayList继承了AbstractList还需要实现List接口呢？网上关于这个问题，大多是这样的说法</p>
-<blockquote>
-<p>It’s a way to remember that this class really implements that interface.It won’t have any bad effect and it can help to understand the code without going through the complete hierarchy of the given class.</p>
-</blockquote>
-<p>意思是通过这种方式增加代码的可读性，提醒阅读者，ArrayList就是一个List，而无需查看AbstractList进行确认。</p>
-<p>ArrayList还实现了RandomAcesss，Cloneable和Serializable接口，表明这个类是可随机访问，可克隆和可序列化的。</p>
-<h2 id="ArrayList定义的常量"><a href="#ArrayList定义的常量" class="headerlink" title="ArrayList定义的常量"></a>ArrayList定义的常量</h2><pre><code class="java">    private static final long serialVersionUID = 8683452581122892189L;
-
-    /**
-     * Default initial capacity.
-     */
-    private static final int DEFAULT_CAPACITY = 10;
-
-    /**
-     * Shared empty array instance used for empty instances.
-     */
-    private static final Object[] EMPTY_ELEMENTDATA = {};
-
-    /**
-     * Shared empty array instance used for default sized empty instances. We
-     * distinguish this from EMPTY_ELEMENTDATA to know how much to inflate when
-     * first element is added.
-     */
-    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
-
-    /**
-     * The array buffer into which the elements of the ArrayList are stored.
-     * The capacity of the ArrayList is the length of this array buffer. Any
-     * empty ArrayList with elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA
-     * will be expanded to DEFAULT_CAPACITY when the first element is added.
-     */
-    transient Object[] elementData; // non-private to simplify nested class access
-
-    /**
-     * The size of the ArrayList (the number of elements it contains).
-     *
-     * @serial
-     */
-    private int size;
-</code></pre>
-<p>这里我们关注几个点，DEFAULT_CAPACITY，EMPTY_ELEMENTDATA，elementData，size</p>
-<p>关于serialVersionUID可能有些同学会有疑问，这里简单解释一下，serialVersionUID适用于Java的序列化机制。简单来说，Java的序列化机制是通过判断类的serialVersionUID来验证版本一致性的。在进行反序列化时，JVM会把传来的字节流中的serialVersionUID与本地相应实体类的serialVersionUID进行比较，如果相同就认为是一致的，可以进行反序列化，否则就会出现序列化版本不一致的异常，即是InvalidCastException。</p>
-<h3 id="DEFAULT-CAPACITY"><a href="#DEFAULT-CAPACITY" class="headerlink" title="DEFAULT_CAPACITY"></a>DEFAULT_CAPACITY</h3><p>DEFAULT_CAPACITY定义了实例化ArrayList时，ArrayList默认的容量大小，这个容量大小是在第一次往ArrayList中添加元素的时候才会初始化的。</p>
-<pre><code class="java">private int newCapacity(int minCapacity) {
-        // overflow-conscious code
-        int oldCapacity = elementData.length;
-        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
-        if (newCapacity - minCapacity &lt;= 0) {
-            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
-                return Math.max(DEFAULT_CAPACITY, minCapacity);
-            if (minCapacity &lt; 0) // overflow
-                throw new OutOfMemoryError();
-            return minCapacity;
-        }
-        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
-            ? newCapacity
-            : hugeCapacity(minCapacity);
-    }
-</code></pre>
-<p>当我们往ArrayList中添加元素时，判断如果这个List的size是否等于目前elementData的限定长度，如果是，就需要扩容，如果ArrayList是刚创建的，那么一开始往ArrayList中添加元素的这个判断就是true，扩容时，ArrayList采取的方式是使用Arrays.copyOf(elementData, newCapacity(minCapacity))方法复制elementData，并根据扩大的容量新建一个数组再赋值给elementData，这样就完成了扩容，上面的newCapacity(minCapacity)就是扩容的过程。这里的minCapacity一般是指ArrayList原有的size+1，因为扩容最起码增加一个容量嘛，这很容易理解。</p>
-<p>扩容公式：int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
-<p>如果计算出新的容量比最小容量小，通常的情况是把最小容量返回给调用者。当第一次添加元素的时候新的容量就比最小容量小，并且elementData也等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，这里有同学可能存有疑问，为什么这两个对象会相等？其实我们在不指定容量的情况下实例化ArrayList的时候，就把DEFAULTCAPACITY_EMPTY_ELEMENTDATA赋值给了elementData</p>
-<pre><code class="java">/**
-     * Constructs an empty list with an initial capacity of ten.
-     */
-    public ArrayList() {
-        this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
-    }
-</code></pre>
-<p>这是扩展出的新容量大小就是DEFAULT_CAPACITY</p>
-<h3 id="EMPTY-ELEMENTDATA"><a href="#EMPTY-ELEMENTDATA" class="headerlink" title="EMPTY_ELEMENTDATA"></a>EMPTY_ELEMENTDATA</h3><p>EMPTY_ELEMENTDATA的作用通过注释也能很清楚是干什么的，但是通过注释去了解程序我是不建议的，毕竟注释不是最真实的。</p>
-<p>通过查看调用EMPTY_ELEMENTDATA的地方可以看出，当我们实例化ArrayList的时候指定容量为0，EMPTY_ELEMENTDATA会被赋值给elementData，这就引发了另一问题，上面讲到，在扩容的时候会判断elementData是否等于DEFAULTCAPACITY_EMPTY_ELEMENTDATA，如果不等会直接返回最小容量，这就导致了在元素不多，甚至只有几个的时候，扩容的次数会变得频繁。</p>
-<p>什么时候elementData是EMPTY_ELEMENTDATA？</p>
-<ol>
-<li><p>当我们实例化ArrayList指定容量大小为0</p>
-</li>
-<li><p>当传递一个Collection容量大小为0</p>
-</li>
-<li><p>当调用trimToSize()，ArrayList的size为0</p>
-</li>
-<li><p>从对象输入流中读取一个ArrayList时，size为0</p>
-</li>
-</ol>
-<h3 id="elementData"><a href="#elementData" class="headerlink" title="elementData"></a>elementData</h3><p>通过上面的描述，相信同学们对elementData也有了一定的认识了。elementData其实就是存储数据的对象，我们往ArrayList中添加元素时，接收元素的就是elementData。需要注意的是，elementData的length并不等于ArrayList的size，elementData的length指的是ArrayList的capacity（容量），而size指的是ArrayList中元素的个数，当添加了一个元素的时候size会加1，而elementData的length不一定会改变。</p>
-<h3 id="ArrayList精髓"><a href="#ArrayList精髓" class="headerlink" title="ArrayList精髓"></a>ArrayList精髓</h3><h4 id="扩容过程"><a href="#扩容过程" class="headerlink" title="扩容过程"></a>扩容过程</h4><p>ArrayList是如何做到自动扩容的，或者说ArrayList是如何做到合理扩容的。先来看一下添加元素相关的方法</p>
-<pre><code class="java">/**
-     * This helper method split out from add(E) to keep method
-     * bytecode size under 35 (the -XX:MaxInlineSize default value),
-     * which helps when add(E) is called in a C1-compiled loop.
-     */
-    private void add(E e, Object[] elementData, int s) {
-        if (s == elementData.length)
-            elementData = grow();
-        elementData[s] = e;
-        size = s + 1;
-    }
-
-    /**
-     * Appends the specified element to the end of this list.
-     *
-     * @param e element to be appended to this list
-     * @return {@code true} (as specified by {@link Collection#add})
-     */
-    public boolean add(E e) {
-        modCount++;
-        add(e, elementData, size);
-        return true;
-    }
-
-    /**
-     * Increases the capacity to ensure that it can hold at least the
-     * number of elements specified by the minimum capacity argument.
-     *
-     * @param minCapacity the desired minimum capacity
-     * @throws OutOfMemoryError if minCapacity is less than zero
-     */
-    private Object[] grow(int minCapacity) {
-        return elementData = Arrays.copyOf(elementData,
-                                           newCapacity(minCapacity));
-    }
-
-    private Object[] grow() {
-        return grow(size + 1);
-    }
-
-    /**
-     * Returns a capacity at least as large as the given minimum capacity.
-     * Returns the current capacity increased by 50% if that suffices.
-     * Will not return a capacity greater than MAX_ARRAY_SIZE unless
-     * the given minimum capacity is greater than MAX_ARRAY_SIZE.
-     *
-     * @param minCapacity the desired minimum capacity
-     * @throws OutOfMemoryError if minCapacity is less than zero
-     */
-    private int newCapacity(int minCapacity) {
-        // overflow-conscious code
-        int oldCapacity = elementData.length;
-        int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);
-        if (newCapacity - minCapacity &lt;= 0) {
-            if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
-                return Math.max(DEFAULT_CAPACITY, minCapacity);
-            if (minCapacity &lt; 0) // overflow
-                throw new OutOfMemoryError();
-            return minCapacity;
-        }
-        return (newCapacity - MAX_ARRAY_SIZE &lt;= 0)
-            ? newCapacity
-            : hugeCapacity(minCapacity);
-    }
-</code></pre>
-<p>当我们调用ArrayList的add()方法时，会先判断ArrayList的size是否等于elementData的length，也就是问一下，目前的元素的个数是否达到了容量的大小，如果达到了容量大小，就需要扩容了，怎么扩容？调用grow()方法，grow()方法实际上就是使用Arrays.copyOf()根据elementData复制出具有相同元素并增加相应的容量的数组赋值给elementData完成扩容。关键是怎么扩容？过程在newCapacity()，首先计算新容量，扩容因数是0.5</p>
-<p>int newCapacity = oldCapacity + (oldCapacity &gt;&gt; 1);</p>
-<p>当新容量比最小容量小或相等的时候，就用最小容量大小，因为此时ArrayList中的元素并不多，也就意味着前期ArrayList通过时间的消耗来换取空间的减少，元素不多说明不需要太大的容量，如果元素不多就进行大扩容必然是不合适的，因此开发者考虑到元素不多的情况的没必要进行大扩容，只需要最小扩容即可。但是每次添加元素的时候会导致扩容次数增加，因此必然会增加了时间的消耗。</p>
-<p>关于elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA的判断，请参考本文的<a href="#DEFAULT_CAPACITY">DEFAULT_CAPACITY</a></p>
-<p>当新容量比最小容量大的时候，就返回新容量的大小，但是新容量的大小不能比最大容量大，MAX_ARRAY_SIZE定义了最大容量</p>
-<pre><code class="java">/**
-     * The maximum size of array to allocate (unless necessary).
-     * Some VMs reserve some header words in an array.
-     * Attempts to allocate larger arrays may result in
-     * OutOfMemoryError: Requested array size exceeds VM limit
-     */
-    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
-</code></pre>
-<p>如果新容量比最大容量大，那么还会有一层保障机制，因为我们可以看到MAX_ARRAY_SIZE其实是减8了，这个时候，利用最小容量扩容，实际就是增大8个容量</p>
-<pre><code class="java">private static int hugeCapacity(int minCapacity) {
-        if (minCapacity &lt; 0) // overflow
-            throw new OutOfMemoryError();
-        return (minCapacity &gt; MAX_ARRAY_SIZE)
-            ? Integer.MAX_VALUE
-            : MAX_ARRAY_SIZE;
-    }
-</code></pre>
-<p>如果达到了最大容量，再添加元素的时候，无疑int的值的最高位会置1，表示一个负数，那么在扩容的时候就会抛出OutOfMemoryError。</p>
-]]></content>
-      <tags>
-        <tag>Java</tag>
-        <tag>Java集合类</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>你的单例真的是单例吗</title>
-    <url>/2019/08/04/%E4%BD%A0%E7%9A%84%E5%8D%95%E4%BE%8B%E7%9C%9F%E7%9A%84%E6%98%AF%E5%8D%95%E4%BE%8B%E5%90%97/</url>
+    <url>/shanbo/2019/08/04/%E4%BD%A0%E7%9A%84%E5%8D%95%E4%BE%8B%E7%9C%9F%E7%9A%84%E6%98%AF%E5%8D%95%E4%BE%8B%E5%90%97/</url>
     <content><![CDATA[<p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
 <p>单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。</p>
 <p>下面看饿汉式的单例模式：</p>
@@ -892,7 +892,7 @@ public class HungrySingleton implements Serializable {
 <p>对象在反序列化的时候出乎了我们的意料，对象发生了变化，这不是我们想看到的结果。那么如何解决这个问题呢？</p>
 <p>有两种解决方案，一种是实现 readResolve 方法，另一种是通过枚举的方式实现单例。</p>
 <h3 id="解决方案一"><a href="#解决方案一" class="headerlink" title="解决方案一"></a>解决方案一</h3><p>看 ObjectOutputStream 的 readObject 方法，可以看出，如果实例方法中有 readResovle 方法，先调用 readResovle 方法，返回 readResovle 方法返回的实例。</p>
-<p><img src="/.io//image-20190804212035702.png" alt="image-20190804212035702"></p>
+<p><img src="/img/image-20190804212035702.png" alt="image-20190804212035702"></p>
 <pre><code class="java">package com.kevinleung.demo.single;
 
 import java.io.Serializable;
@@ -974,7 +974,7 @@ public enum EnumSingleton {
 </blockquote>
 <p>枚举之所以能够解决单例模式反序列化问题的原因是，反序列化的时候，枚举的实现方式和其他类型是不一样的。</p>
 <p>具体可看下面源码：</p>
-<p><img src="/.io//image-20190804214537510.png" alt="image-20190804214537510"></p>
+<p><img src="/img/image-20190804214537510.png" alt="image-20190804214537510"></p>
 <p>在枚举反序列化的时候，调用了 Enum.valueOf 方法，这个方法会从枚举类中保存的 map 中获取枚举实例。也就是说，枚举在每次反序列化的时候，都会从公有的枚举 map 中获取对应 name 的实例。所以，每次反序列化后的都是同一个对象。</p>
 ]]></content>
       <tags>
@@ -982,65 +982,8 @@ public enum EnumSingleton {
       </tags>
   </entry>
   <entry>
-    <title>使用markdown画流程图</title>
-    <url>/2019/03/10/%E4%BD%BF%E7%94%A8markdown%E7%94%BB%E6%B5%81%E7%A8%8B%E5%9B%BE/</url>
-    <content><![CDATA[<p>市面上有很多画流程图的软件，比如<a href="https://www.processon.com" target="_blank" rel="noopener">ProcessOn</a>, <a href="https://www.visual-paradigm.com/" target="_blank" rel="noopener">VisualParadigm</a>，这些软件都可以非常直观快速的构建一个流程图，但常常需要打开一个网页或一个软件而不够便捷，如果是一些比较复杂的流程描述我会使用以上两个软件，以上的两个软件都是通过图形拖拽的方式创建流程图，markdown提供一种文本描述的方式来创建流程图，这样不需要离开编辑的界面即可完成一个流程图，岂不妙哉？</p>
-<p>使用markdown来完成流程图需要注意编辑器支不支持画流程图，我使用的是typora是支持画流程图的，如果大家在自己的编辑器上画不出流程图，请查阅该编辑器的特性是否支持流程图。</p>
-<p>其实流程图的创建是基于flowchart.js的，编辑器是否能够支持画流程图本质上指的是否支持flowchart.js。</p>
-<h2 id="流程图的关键节点"><a href="#流程图的关键节点" class="headerlink" title="流程图的关键节点"></a>流程图的关键节点</h2><h3 id="1-开始节点"><a href="#1-开始节点" class="headerlink" title="1. 开始节点"></a>1. 开始节点</h3><p>开始节点表示流程的开始，每个算法流程都有且仅有一个入口，使用圆角矩形表示，在markdown中使用<strong>start</strong>关键字表示。</p>
-<h3 id="2-结束节点"><a href="#2-结束节点" class="headerlink" title="2. 结束节点"></a>2. 结束节点</h3><p>结束节点表示流程的结束，每个算法流程都需要指定结束节点，使用圆角矩形表示，在markdown中使用<strong>end</strong>关键字表示。</p>
-<h3 id="3-判断节点"><a href="#3-判断节点" class="headerlink" title="3. 判断节点"></a>3. 判断节点</h3><p>判断节点用于分支结构，表示流程中的逻辑判断，有两个出口，[yes] or [no]，使用棱形表示，在markdown中使用<strong>condition</strong>关键字表示。</p>
-<h3 id="4-操作节点"><a href="#4-操作节点" class="headerlink" title="4. 操作节点"></a>4. 操作节点</h3><p>操作节点的操作对象主要是数据，数据的变更和声明等等，使用直角矩形表示，在mardkwon中使用<strong>operation</strong>关键字表示。</p>
-<h3 id="5-输入输出节点"><a href="#5-输入输出节点" class="headerlink" title="5. 输入输出节点"></a>5. 输入输出节点</h3><p>数据的输入和输出都使用平行四边形表示，在markdown中使用<strong>inputoutput</strong>关键字表示。</p>
-<h2 id="在markdown如何嵌入流程图"><a href="#在markdown如何嵌入流程图" class="headerlink" title="在markdown如何嵌入流程图"></a>在markdown如何嵌入流程图</h2><p>在markdown中嵌入流程图和在markdown中嵌入代码块是一样的，如下嵌入一段java代码：</p>
-<blockquote>
-<p>``` java</p>
-<p>// some codes here.</p>
-<p>```</p>
-</blockquote>
-<p>同上，要嵌入流程图可以像这样：</p>
-<blockquote>
-<p>``` flow</p>
-<p>// describe your flowchart</p>
-<p>```</p>
-</blockquote>
-<h2 id="实战"><a href="#实战" class="headerlink" title="实战"></a>实战</h2><p>使用流程图描述使用水壶烧水的过程：</p>
-<pre><code>st=&gt;start: 开始
-e=&gt;end: 结束
-io1=&gt;inputoutput: 输入水量
-con1=&gt;condition: 校验水量是否通过
-op1=&gt;operation: 烧水并等待
-io2=&gt;inputoutput: 提示错误
-st-&gt;io1-&gt;con1
-con1(yes)-&gt;op1
-con1(no)-&gt;io2(right)-&gt;io1
-op1-&gt;e
-</code></pre><div id="flowchart-0" class="flow-chart"></div>
-
-<p>大家看到的“st=&gt;start: 开始”这类的语法，表示定义一个标识符，类似编程语言里的变量定义，具体的格式是这样的：</p>
-<blockquote>
-<p>标识符=&gt;关键字: 描述</p>
-</blockquote>
-<p>关键字是上面提到的几种流程图关键字，start, end, operation, condition, inputoutput, 我只是提了几种常用的，如何不符合读者的需求，各位可以上网自行查阅其他的图形使用的关键字。</p>
-<p>所有的标识符使用“-&gt;”连接起来，到此流程图就画出来了。连接的时候还可以指定连接位置，比如io2我使用了io2(right)，表示从右边发起连接。</p>
-<p><script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.2.7/raphael.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/flowchart/1.6.5/flowchart.min.js"></script><textarea id="flowchart-0-code" style="display: none">st=>start: 开始
-e=>end: 结束
-io1=>inputoutput: 输入水量
-con1=>condition: 校验水量是否通过
-op1=>operation: 烧水并等待
-io2=>inputoutput: 提示错误
-st->io1->con1
-con1(yes)->op1
-con1(no)->io2(right)->io1
-op1->e</textarea><textarea id="flowchart-0-options" style="display: none">{"scale":1,"line-width":2,"line-length":50,"text-margin":10,"font-size":12}</textarea><script>  var code = document.getElementById("flowchart-0-code").value;  var options = JSON.parse(decodeURIComponent(document.getElementById("flowchart-0-options").value));  var diagram = flowchart.parse(code);  diagram.drawSVG("flowchart-0", options);</script></p>
-]]></content>
-      <tags>
-        <tag>funny</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>单例模式的四种实现</title>
-    <url>/2018/04/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%9B%9B%E7%A7%8D%E5%AE%9E%E7%8E%B0/</url>
+    <url>/shanbo/2018/04/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%9B%9B%E7%A7%8D%E5%AE%9E%E7%8E%B0/</url>
     <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>单例模式能保证我们获取类的实例的时候，只能获取唯一的一个实例，这个实例是常驻内存的。</p>
 <h2 id="1-懒汉式"><a href="#1-懒汉式" class="headerlink" title="1. 懒汉式"></a>1. 懒汉式</h2><pre><code class="java">public class LazySingleton {
 
@@ -1115,8 +1058,65 @@ op1->e</textarea><textarea id="flowchart-0-options" style="display: none">{"scal
       </tags>
   </entry>
   <entry>
+    <title>使用markdown画流程图</title>
+    <url>/shanbo/2019/03/10/%E4%BD%BF%E7%94%A8markdown%E7%94%BB%E6%B5%81%E7%A8%8B%E5%9B%BE/</url>
+    <content><![CDATA[<p>市面上有很多画流程图的软件，比如<a href="https://www.processon.com" target="_blank" rel="noopener">ProcessOn</a>, <a href="https://www.visual-paradigm.com/" target="_blank" rel="noopener">VisualParadigm</a>，这些软件都可以非常直观快速的构建一个流程图，但常常需要打开一个网页或一个软件而不够便捷，如果是一些比较复杂的流程描述我会使用以上两个软件，以上的两个软件都是通过图形拖拽的方式创建流程图，markdown提供一种文本描述的方式来创建流程图，这样不需要离开编辑的界面即可完成一个流程图，岂不妙哉？</p>
+<p>使用markdown来完成流程图需要注意编辑器支不支持画流程图，我使用的是typora是支持画流程图的，如果大家在自己的编辑器上画不出流程图，请查阅该编辑器的特性是否支持流程图。</p>
+<p>其实流程图的创建是基于flowchart.js的，编辑器是否能够支持画流程图本质上指的是否支持flowchart.js。</p>
+<h2 id="流程图的关键节点"><a href="#流程图的关键节点" class="headerlink" title="流程图的关键节点"></a>流程图的关键节点</h2><h3 id="1-开始节点"><a href="#1-开始节点" class="headerlink" title="1. 开始节点"></a>1. 开始节点</h3><p>开始节点表示流程的开始，每个算法流程都有且仅有一个入口，使用圆角矩形表示，在markdown中使用<strong>start</strong>关键字表示。</p>
+<h3 id="2-结束节点"><a href="#2-结束节点" class="headerlink" title="2. 结束节点"></a>2. 结束节点</h3><p>结束节点表示流程的结束，每个算法流程都需要指定结束节点，使用圆角矩形表示，在markdown中使用<strong>end</strong>关键字表示。</p>
+<h3 id="3-判断节点"><a href="#3-判断节点" class="headerlink" title="3. 判断节点"></a>3. 判断节点</h3><p>判断节点用于分支结构，表示流程中的逻辑判断，有两个出口，[yes] or [no]，使用棱形表示，在markdown中使用<strong>condition</strong>关键字表示。</p>
+<h3 id="4-操作节点"><a href="#4-操作节点" class="headerlink" title="4. 操作节点"></a>4. 操作节点</h3><p>操作节点的操作对象主要是数据，数据的变更和声明等等，使用直角矩形表示，在mardkwon中使用<strong>operation</strong>关键字表示。</p>
+<h3 id="5-输入输出节点"><a href="#5-输入输出节点" class="headerlink" title="5. 输入输出节点"></a>5. 输入输出节点</h3><p>数据的输入和输出都使用平行四边形表示，在markdown中使用<strong>inputoutput</strong>关键字表示。</p>
+<h2 id="在markdown如何嵌入流程图"><a href="#在markdown如何嵌入流程图" class="headerlink" title="在markdown如何嵌入流程图"></a>在markdown如何嵌入流程图</h2><p>在markdown中嵌入流程图和在markdown中嵌入代码块是一样的，如下嵌入一段java代码：</p>
+<blockquote>
+<p>``` java</p>
+<p>// some codes here.</p>
+<p>```</p>
+</blockquote>
+<p>同上，要嵌入流程图可以像这样：</p>
+<blockquote>
+<p>``` flow</p>
+<p>// describe your flowchart</p>
+<p>```</p>
+</blockquote>
+<h2 id="实战"><a href="#实战" class="headerlink" title="实战"></a>实战</h2><p>使用流程图描述使用水壶烧水的过程：</p>
+<pre><code>st=&gt;start: 开始
+e=&gt;end: 结束
+io1=&gt;inputoutput: 输入水量
+con1=&gt;condition: 校验水量是否通过
+op1=&gt;operation: 烧水并等待
+io2=&gt;inputoutput: 提示错误
+st-&gt;io1-&gt;con1
+con1(yes)-&gt;op1
+con1(no)-&gt;io2(right)-&gt;io1
+op1-&gt;e
+</code></pre><div id="flowchart-0" class="flow-chart"></div>
+
+<p>大家看到的“st=&gt;start: 开始”这类的语法，表示定义一个标识符，类似编程语言里的变量定义，具体的格式是这样的：</p>
+<blockquote>
+<p>标识符=&gt;关键字: 描述</p>
+</blockquote>
+<p>关键字是上面提到的几种流程图关键字，start, end, operation, condition, inputoutput, 我只是提了几种常用的，如何不符合读者的需求，各位可以上网自行查阅其他的图形使用的关键字。</p>
+<p>所有的标识符使用“-&gt;”连接起来，到此流程图就画出来了。连接的时候还可以指定连接位置，比如io2我使用了io2(right)，表示从右边发起连接。</p>
+<p><script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.2.7/raphael.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/flowchart/1.6.5/flowchart.min.js"></script><textarea id="flowchart-0-code" style="display: none">st=>start: 开始
+e=>end: 结束
+io1=>inputoutput: 输入水量
+con1=>condition: 校验水量是否通过
+op1=>operation: 烧水并等待
+io2=>inputoutput: 提示错误
+st->io1->con1
+con1(yes)->op1
+con1(no)->io2(right)->io1
+op1->e</textarea><textarea id="flowchart-0-options" style="display: none">{"scale":1,"line-width":2,"line-length":50,"text-margin":10,"font-size":12}</textarea><script>  var code = document.getElementById("flowchart-0-code").value;  var options = JSON.parse(decodeURIComponent(document.getElementById("flowchart-0-options").value));  var diagram = flowchart.parse(code);  diagram.drawSVG("flowchart-0", options);</script></p>
+]]></content>
+      <tags>
+        <tag>funny</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>自定义类加载器</title>
-    <url>/2018/04/14/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/</url>
+    <url>/shanbo/2018/04/14/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/</url>
     <content><![CDATA[<h2 id="类加载机制中的加载阶段"><a href="#类加载机制中的加载阶段" class="headerlink" title="类加载机制中的加载阶段"></a>类加载机制中的加载阶段</h2><p>那么jvm在什么情况下处于加载阶段呢？</p>
 <p>在《深入理解Java虚拟机》是这样描述的</p>
 <blockquote>
@@ -1313,7 +1313,7 @@ System.out.println(firstObj.getClass() == secondObj.getClass());
   </entry>
   <entry>
     <title>部署出现不必要告警的前因后果</title>
-    <url>/2018/10/27/%E9%83%A8%E7%BD%B2%E5%87%BA%E7%8E%B0%E4%B8%8D%E5%BF%85%E8%A6%81%E5%91%8A%E8%AD%A6%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/</url>
+    <url>/shanbo/2018/10/27/%E9%83%A8%E7%BD%B2%E5%87%BA%E7%8E%B0%E4%B8%8D%E5%BF%85%E8%A6%81%E5%91%8A%E8%AD%A6%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/</url>
     <content><![CDATA[<p>很多大公司都是可以利用自己的中间件监控自己应用的性能情况，异常记录和业务成功率等等，如果出现超出预想的监控值，可以通过手机短信，或是其他途径，例如钉钉，给出告警。</p>
 <p>现在的问题是，在业务进行迭代的过程里，需要对应用进行重新部署，在重新部署的过程中，容易导致应用不可用，当然，系统的可用性不可能在应用部署的时候被搞垮，在线上机器部署的时候是分批部署的，即使一批机器在部署，其他批次的机器也能提供服务。在阿里工作过的同学都知道，阿里内部的环境复杂性，为了保障线上稳定，需要对多个环境进行验证，一般来说有这几种，日常，预发，灰度，正式。无关紧要的我就不扯了，我们监控的一般是真实环境，而不是测试环境，在这几种环境中，灰度环境和正式环境就是真实的环境，只是灰度环境的机器比较少，因此，即使是分批部署保证可用性，但在灰度机器比较少的情况下，跟正式环境相比，如果其中有一台机器出问题，业务成功率会比正式环境低不少，因此很容易导致告警。</p>
 <p>那么这种告警有必要吗？这个跟系统应用有关，具体问题具体分析，因为我们的应用用到了阿里内部的DTS（分布式任务调度系统），DTS客户端启动之后会每隔一段时间进行一次任务调度，那么这里就容易出问题了，如果应用在部署的时候，进行任务调度会怎么样，在部署的时候一些被用到的bean还没有被加载，这个时候就会报错，导致成功率大大减低，从而会造成不必要的告警。</p>
@@ -1378,7 +1378,7 @@ public class SpringApplicationClosingListener implements ApplicationListener&lt;
   </entry>
   <entry>
     <title>切换Brew软件源</title>
-    <url>/2022/06/26/%E5%88%87%E6%8D%A2Brew%E8%BD%AF%E4%BB%B6%E6%BA%90/</url>
+    <url>/shanbo/2022/06/26/%E5%88%87%E6%8D%A2Brew%E8%BD%AF%E4%BB%B6%E6%BA%90/</url>
     <content><![CDATA[<p>Homebrew 是一款自由及开放源代码的软件包管理系统，用以简化 macOS 和 linux 系统上的软件安装过程。它拥有安装、卸载、更新、查看、搜索等很多实用的功能，通过简单的一条指令，就可以实现包管理，十分方便快捷。</p>
 <p><em>Homebrew</em> 主要有四个部分组成: <em>brew</em>、<em>homebrew-core</em> 、<em>homebrew-bottles</em>、<em>homebrew-cask</em>。</p>
 <table>

@@ -46,21 +46,21 @@
 
 
 
-<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+<link rel="stylesheet" href="/shanbo/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
 
-<link rel="stylesheet" href="/css/main.css?v=7.0.0">
-
-
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.0">
+<link rel="stylesheet" href="/shanbo/css/main.css?v=7.0.0">
 
 
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/shanbo/images/apple-touch-icon-next.png?v=7.0.0">
 
 
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/shanbo/images/favicon-32x32-next.png?v=7.0.0">
 
 
-  <link rel="mask-icon" href="/images/logo.svg?v=7.0.0" color="#222">
+  <link rel="icon" type="image/png" sizes="16x16" href="/shanbo/images/favicon-16x16-next.png?v=7.0.0">
+
+
+  <link rel="mask-icon" href="/shanbo/images/logo.svg?v=7.0.0" color="#222">
 
 
 
@@ -71,7 +71,7 @@
 <script id="hexo.configurations">
   var NexT = window.NexT || {};
   var CONFIG = {
-    root: '/',
+    root: '/shanbo/',
     scheme: 'Gemini',
     version: '7.0.0',
     sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false,"dimmer":false},
@@ -96,20 +96,25 @@
 <link href="/css/code-prettify/prettify.css" type="text/css" rel="stylesheet">
 
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="善博的博客">
-<meta property="og:url" content="https://kevinleung611.github.io/tags/小记/index.html">
+  <meta name="description" content="实现猜想Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从bean">
+<meta name="keywords" content="Java,Spring">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring依赖注入实现原理">
+<meta property="og:url" content="https://kevinleung611.github.io/shanbo/2019/03/01/Spring依赖注入实现原理/index.html">
 <meta property="og:site_name" content="善博的博客">
+<meta property="og:description" content="实现猜想Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从bean">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2022-06-26T10:23:10.200Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="善博的博客">
+<meta name="twitter:title" content="Spring依赖注入实现原理">
+<meta name="twitter:description" content="实现猜想Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从bean">
 
 
 
 
 
 
-  <link rel="canonical" href="https://kevinleung611.github.io/tags/小记/">
+  <link rel="canonical" href="https://kevinleung611.github.io/shanbo/2019/03/01/Spring依赖注入实现原理/">
 
 
 
@@ -119,7 +124,7 @@
   };
 </script>
 
-  <title>标签: 小记 | 善博的博客</title>
+  <title>Spring依赖注入实现原理 | 善博的博客</title>
   
 
 
@@ -167,7 +172,7 @@
     
   
 
-  <div class="container sidebar-position-left ">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -176,7 +181,7 @@
     
 
     <div class="custom-logo-site-title">
-      <a href="/" class="brand" rel="start">
+      <a href="/shanbo/" class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
         <span class="site-title">善博的博客</span>
         <span class="logo-line-after"><i></i></span>
@@ -215,7 +220,7 @@
 
     
 
-    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+    <a href="/shanbo/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
 
   </li>
 
@@ -276,70 +281,360 @@
           
             
 
-    
-    
-      
-      
-    
-    
-
-  
-
-
           
           <div id="content" class="content">
             
 
-  
-  
-  
-  <div class="post-block tag">
+  <div id="posts" class="posts-expand">
+    
 
-    <div id="posts" class="posts-collapse">
-      <div class="collection-title">
-        <h1>小记<small>标签</small>
-        </h1>
-      </div>
+  
 
-      
-        
+  
+  
+  
+
+  
 
   <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://kevinleung611.github.io/shanbo/shanbo/2019/03/01/Spring依赖注入实现原理/">
 
-      <h2 class="post-title">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="善博">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/shanbo/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="善博的博客">
+    </span>
+
+    
+      <header class="post-header">
+
         
-          <a class="post-title-link" href="/2022/06/26/切换Brew软件源/" itemprop="url">
-            
-              <span itemprop="name">切换Brew软件源</span>
-            
-          </a>
         
-      </h2>
+          <h1 class="post-title" itemprop="name headline">Spring依赖注入实现原理
 
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated" datetime="2022-06-26T17:31:54+08:00" content="2022-06-26">
-          06-26
-        </time>
-      </div>
+              
+            
+          </h1>
+        
 
-    </header>
-  </article>
+        <div class="post-meta">
+          <span class="post-time">
 
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-03-01 02:31:54" itemprop="dateCreated datePublished" datetime="2019-03-01T02:31:54+08:00">2019-03-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2022-06-26 18:23:10" itemprop="dateModified" datetime="2022-06-26T18:23:10+08:00">2022-06-26</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="实现猜想"><a href="#实现猜想" class="headerlink" title="实现猜想"></a>实现猜想</h2><p>Spring提供@Autowired注解实现依赖注入，当我们想注入一个对象的时候，在成员属性，构造器和方法前加上@Autowired注解，@Autowired默认是按照类型进行注入的，当出现依赖冲突的时候，我们可以使用@Qualifier注解执行bean的名称进行注入。Spring要想实现这个功能，在定义bean的类上搜索有@Autowired注解的成员属性，构造器和方法，然后再从beanFactory中找出合适的bean注入。这是基本的思路，下面我将采用自顶向下的思路来对Spring依赖注入的源码进行剖析。</p>
+<h2 id="AbstractBeanFactory"><a href="#AbstractBeanFactory" class="headerlink" title="AbstractBeanFactory"></a>AbstractBeanFactory</h2><p>在这个类中定义了获取Bean的方法</p>
+<pre><code class="java">/**
+* Return an instance, which may be shared or independent, of the specified bean.
+* @param name the name of the bean to retrieve
+* @param requiredType the required type of the bean to retrieve
+* @param args arguments to use when creating a bean instance using explicit arguments
+* (only applied when creating a new instance as opposed to retrieving an existing one)
+* @return an instance of the bean
+* @throws BeansException if the bean could not be created
+*/
+public &lt;T&gt; T getBean(String name, @Nullable Class&lt;T&gt; requiredType, @Nullable Object... args) throws BeansException {
+        return doGetBean(name, requiredType, args, false);
+}
+</code></pre>
+<p>当Spring调用getBean方法的时候，也就是调用AbstractBeanFactory中的doCreateBean()方法，Spring既然设置Bean默认的生命周期是Singleton，那么，Spring这里先从Singleton的缓存中取出Bean的实例赋值给sharedInstance，如果是singleton固然能从singleton中的缓存中取出相应的实例，若不能，则说明该实例不是一个Singleton或者还没有实例化。</p>
+<pre><code class="java">// Eagerly check singleton cache for manually registered singletons.
+Object sharedInstance = getSingleton(beanName);
+if (sharedInstance != null &amp;&amp; args == null) {
+    if (logger.isDebugEnabled()) {
+        if (isSingletonCurrentlyInCreation(beanName)) {
+            logger.debug(&quot;Returning eagerly cached instance of singleton bean &#39;&quot; + beanName +
+                    &quot;&#39; that is not fully initialized yet - a consequence of a circular reference&quot;);
+        }
+        else {
+            logger.debug(&quot;Returning cached instance of singleton bean &#39;&quot; + beanName + &quot;&#39;&quot;);
+        }
+    }
+    bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
+}
+</code></pre>
+<p>然后使用mbd判断sharedInstance是否是Singleton。mbd表示RootBeanDefinition，用于描述Bean的一些属性，包括这个Bean是否是单例，管理的注入成员，管理的初始化方法和销毁方法，具体的各位读者可以到RootBeanDefinition看看，这里就不讲述了。如果该Bean是一个Singleton，就执行createBean()方法。</p>
+<pre><code class="java">/ Create bean instance.
+if (mbd.isSingleton()) {
+    sharedInstance = getSingleton(beanName, () -&gt; {
+        try {
+            return createBean(beanName, mbd, args);
+        }
+        catch (BeansException ex) {
+        // Explicitly remove instance from singleton cache: It might have been put there
+        // eagerly by the creation process, to allow for circular reference resolution.
+        // Also remove any beans that received a temporary reference to the bean.
+            destroySingleton(beanName);
+            throw ex;
+        }
+    });
+    bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
+}
+</code></pre>
+<p>在createBean中有调用了doCreateBean()方法，但是这个doCreateBean()方法是AbstractAutowireCapableBeanFactory的doCreateBean()方法。</p>
+<pre><code class="java">try {
+    Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+    if (logger.isDebugEnabled()) {
+        logger.debug(&quot;Finished creating instance of bean &#39;&quot; + beanName + &quot;&#39;&quot;);
+    }
+    return beanInstance;
+}
+catch (BeanCreationException ex) {
+    // A previously detected exception with proper bean creation context already...
+    throw ex;
+}
+catch (ImplicitlyAppearedSingletonException ex) {
+    // An IllegalStateException to be communicated up to DefaultSingletonBeanRegistry...
+    throw ex;
+}
+catch (Throwable ex) {
+    throw new BeanCreationException(
+            mbdToUse.getResourceDescription(), beanName, &quot;Unexpected exception during bean creation&quot;, ex);
+}
+</code></pre>
+<p>在doCreateBean的时候会有一个合并BeanDefinition的过程</p>
+<pre><code class="java">applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
+</code></pre>
+<p>我们再来看看这个方法的实现，我们发现这个会获取BeanPostProcessors，Spring和我们定义的BeanPostProcessor都会存放在AbstractBeanFactory中，这里获取BeanPostProcessor的集合，只要这个BeanPostprocessor是MergedBeanDefinitionPostProcessor，则执行postProcessMergedBeanDefinition()方法，我们继续最终，发现AbstractAnnotationBeanPostProcessor中定义的postProcessMergedBeanDefinition()</p>
+<pre><code class="java">/**
+* Apply MergedBeanDefinitionPostProcessors to the specified bean definition,
+* invoking their {@code postProcessMergedBeanDefinition} methods.
+* @param mbd the merged bean definition for the bean
+* @param beanType the actual type of the managed bean instance
+* @param beanName the name of the bean
+* @see MergedBeanDefinitionPostProcessor#postProcessMergedBeanDefinition
+*/
+protected void applyMergedBeanDefinitionPostProcessors(RootBeanDefinition mbd, Class&lt;?&gt; beanType, String beanName) {
+    for (BeanPostProcessor bp : getBeanPostProcessors()) {
+        if (bp instanceof MergedBeanDefinitionPostProcessor) {
+            MergedBeanDefinitionPostProcessor bdp = (MergedBeanDefinitionPostProcessor) bp;
+            bdp.postProcessMergedBeanDefinition(mbd, beanType, beanName);
+        }
+    }
+}
+</code></pre>
+<h2 id="AutowiredAnnotationBeanPostProcessor"><a href="#AutowiredAnnotationBeanPostProcessor" class="headerlink" title="AutowiredAnnotationBeanPostProcessor"></a>AutowiredAnnotationBeanPostProcessor</h2><p>这个类在org.springframework.beans.factory.annotation下，它是实现@Autowired注解的处理器，先来看一下这个类的定义</p>
+<pre><code class="java">public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBeanPostProcessorAdapter
+        implements MergedBeanDefinitionPostProcessor, PriorityOrdered, BeanFactoryAware
+</code></pre>
+<p>往上溯源我们可以知道，其实AutowiredAnnoationBeanProcessor就是一个BeanPostProcessor，也就意味着，在一个bean被初始化之前和初始化之后是可以做某些操作的。上面提到，Spring在createBean的时候会合并BeanDefinition，在这个时候调用MergedBeanDefinitionPostProcessor的postProcessMergedBeanDefinition()方法，关于AutowiredAnnotationBeanPostProcessor中定义的postProcessMergedBeanDefinition()方法如下：</p>
+<pre><code class="java">@Override
+public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class&lt;?&gt; beanType, String beanName) {
+    InjectionMetadata metadata = findAutowiringMetadata(beanName, beanType, null);
+    metadata.checkConfigMembers(beanDefinition);
+}
+</code></pre>
+<p>其中的findAutowiringMetadata()就是查找该类中被@Autowired或者@Value修饰的成员，包括成员属性，构造器和方法(@Value不能作用与构造器)，将找到的成员属性或者方法封装在InjectionMetadata的injectedElements中。具体怎么查找并封装的，同学们可以继续追踪下去，这里就不深究了。</p>
+<h2 id="AbstractAutowireCapableBeanFactory"><a href="#AbstractAutowireCapableBeanFactory" class="headerlink" title="AbstractAutowireCapableBeanFactory"></a>AbstractAutowireCapableBeanFactory</h2><p>我们再回到合并BeanDefinition的地方，合并完BeanDefinition之后，也就意味着该类中被@Autowired和@Value注解的成员属性和成员方法已经找到了，但是Spring并没有立即执行注入。往后看，发现：</p>
+<pre><code class="java">populateBean(beanName, mbd, instanceWrapper);
+</code></pre>
+<p>该方法用于填充Bean，包括依赖注入</p>
+<pre><code class="java">for (BeanPostProcessor bp : getBeanPostProcessors()) {
+    if (bp instanceof InstantiationAwareBeanPostProcessor) {
+        InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;
+        pvs = ibp.postProcessPropertyValues(pvs, filteredPds, bw.getWrappedInstance(), beanName);
+        if (pvs == null) {
+            return;
+        }
+    }
+}
+</code></pre>
+<p>我们可以看到，从AbstractBeanFactory中获取BeanPostProcessor集合，找出InstantiationAwareBeanPostProcessor，调用postProcessPropertyValues()方法，我们来看AutowiredAnnotationBeanPostProcessor的实现</p>
+<pre><code class="java">@Override
+public PropertyValues postProcessPropertyValues(
+    PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName) throws BeanCreationException {
+    InjectionMetadata metadata = findAutowiringMetadata(beanName, bean.getClass(), pvs);
+    try {
+        metadata.inject(bean, beanName, pvs);
+    }
+    catch (BeanCreationException ex) {
+        throw ex;
+    }
+    catch (Throwable ex) {
+        throw new BeanCreationException(beanName, &quot;Injection of autowired dependencies failed&quot;, ex);
+    }
+    return pvs;
+}
+</code></pre>
+<p>先找出类中被@Autowired或@Value修饰的成员属性和成员方法，如果之前执行了合并BeanDefinition的操作，那么这里获取成员属性和成员方法只需要从缓存中取即可，关键是metadata.inject()方法，使用该方法最终完成依赖注入。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>同学们看到上面的分析过程可能会有点晕，下面我用简单的方式来总结Spring依赖注入的实现过程。</p>
+<p>Spring在实例化Bean的时候会进行合并BeanDefinition的过程，在这个过程中，会查找Bean和该Bean的父类中被@Autowired注解修饰的成员属性和方法，将其添加至AutowiredAnnotationBeanPostProcessor中的缓存中，并封装在InjectionMetaData，这样就完成了预备动作，接下来populateBean也就是填充Bean的时候，通过postProcessorPropertyValues方法将该Bean的依赖注入其中，通过InjectionMetaData的inject()方法就完成注入了。</p>
 
       
     </div>
 
+    
+      
+
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>善博</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://kevinleung611.github.io/shanbo/2019/03/01/Spring依赖注入实现原理/" title="Spring依赖注入实现原理">https://kevinleung611.github.io/shanbo/2019/03/01/Spring依赖注入实现原理/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/shanbo/tags/Java/" rel="tag"># Java</a>
+          
+            <a href="/shanbo/tags/Spring/" rel="tag"># Spring</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/shanbo/2018/10/27/部署出现不必要告警的前因后果/" rel="next" title="部署出现不必要告警的前因后果">
+                <i class="fa fa-chevron-left"></i> 部署出现不必要告警的前因后果
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/shanbo/2019/03/10/使用markdown画流程图/" rel="prev" title="使用markdown画流程图">
+                使用markdown画流程图 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
   </div>
   
   
   
+  </article>
 
-  
+
+  </div>
 
 
           </div>
           
+
+  
+
+
 
         </div>
         
@@ -359,12 +654,21 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <div class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
-              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="善博">
+              <img class="site-author-image" itemprop="image" src="/shanbo/images/avatar.jpg" alt="善博">
             
               <p class="site-author-name" itemprop="name">善博</p>
               <p class="site-description motion-element" itemprop="description"></p>
@@ -375,9 +679,9 @@
               
                 <div class="site-state-item site-state-posts">
                 
-                  <a href="/archives">
+                  <a href="/shanbo/archives">
                 
-                    <span class="site-state-item-count">10</span>
+                    <span class="site-state-item-count">11</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -462,6 +766,23 @@
         </div>
       </div>
 
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#实现猜想"><span class="nav-number">1.</span> <span class="nav-text">实现猜想</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractBeanFactory"><span class="nav-number">2.</span> <span class="nav-text">AbstractBeanFactory</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AutowiredAnnotationBeanPostProcessor"><span class="nav-number">3.</span> <span class="nav-text">AutowiredAnnotationBeanPostProcessor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractAutowireCapableBeanFactory"><span class="nav-number">4.</span> <span class="nav-text">AbstractAutowireCapableBeanFactory</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
       
 
       
@@ -557,46 +878,52 @@
 
 
   
-  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+  <script src="/shanbo/lib/jquery/index.js?v=2.1.3"></script>
 
   
-  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/shanbo/lib/velocity/velocity.min.js?v=1.2.1"></script>
 
   
-  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
-
-
-  
-
-
-  <script src="/js/src/utils.js?v=7.0.0"></script>
-
-  <script src="/js/src/motion.js?v=7.0.0"></script>
-
-
-
-  
-  
-
-
-  <script src="/js/src/affix.js?v=7.0.0"></script>
-
-  <script src="/js/src/schemes/pisces.js?v=7.0.0"></script>
-
-
+  <script src="/shanbo/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
 
 
   
 
-  
 
+  <script src="/shanbo/js/src/utils.js?v=7.0.0"></script>
 
-  <script src="/js/src/bootstrap.js?v=7.0.0"></script>
+  <script src="/shanbo/js/src/motion.js?v=7.0.0"></script>
+
 
 
   
   
 
+
+  <script src="/shanbo/js/src/affix.js?v=7.0.0"></script>
+
+  <script src="/shanbo/js/src/schemes/pisces.js?v=7.0.0"></script>
+
+
+
+
+  
+  <script src="/shanbo/js/src/scrollspy.js?v=7.0.0"></script>
+<script src="/shanbo/js/src/post-details.js?v=7.0.0"></script>
+
+
+
+  
+
+
+  <script src="/shanbo/js/src/bootstrap.js?v=7.0.0"></script>
+
+
+  
+  
+
+
+  
 
 
   
@@ -611,7 +938,7 @@
     } else if (/json$/i.test(search_path)) {
       isXml = false;
     }
-    var path = "/" + search_path;
+    var path = "/shanbo/" + search_path;
     // monitor main search box;
 
     var onPopupClose = function (e) {
