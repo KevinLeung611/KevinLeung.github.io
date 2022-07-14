@@ -96,28 +96,34 @@
 <link href="/css/code-prettify/prettify.css" type="text/css" rel="stylesheet">
 
 
-  <meta name="description" content="对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.kevinleung.d">
-<meta name="keywords" content="单例模式">
+  <meta name="description" content="概述从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。 Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。 核心步骤scanrefreshstop">
+<meta name="keywords" content="Java,Spring">
 <meta property="og:type" content="article">
-<meta property="og:title" content="你的单例真的是单例吗">
-<meta property="og:url" content="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/index.html">
+<meta property="og:title" content="Spring启动流程">
+<meta property="og:url" content="https://kevinleung611.github.io/2022/07/14/Spring启动流程/index.html">
 <meta property="og:site_name" content="善博的博客">
-<meta property="og:description" content="对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.kevinleung.d">
+<meta property="og:description" content="概述从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。 Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。 核心步骤scanrefreshstop">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https://kevinleung611.github.io/.io//image-20190804212035702.png">
-<meta property="og:image" content="https://kevinleung611.github.io/.io//image-20190804214537510.png">
-<meta property="og:updated_time" content="2022-06-26T10:22:35.924Z">
+<meta property="og:image" content="https://kevinleung611.github.io/.io//image-20220706213218202.png">
+<meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220706190237762.png">
+<meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220708114448199.png">
+<meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712213528259.png">
+<meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214513768.png">
+<meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214754344.png">
+<meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714153722283.png">
+<meta property="og:image" content="https://kevinleung611.github.io/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714155034426.png">
+<meta property="og:updated_time" content="2022-07-14T09:33:42.704Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="你的单例真的是单例吗">
-<meta name="twitter:description" content="对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。 单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。 下面看饿汉式的单例模式： package com.kevinleung.d">
-<meta name="twitter:image" content="https://kevinleung611.github.io/.io//image-20190804212035702.png">
+<meta name="twitter:title" content="Spring启动流程">
+<meta name="twitter:description" content="概述从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。 Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。 核心步骤scanrefreshstop">
+<meta name="twitter:image" content="https://kevinleung611.github.io/.io//image-20220706213218202.png">
 
 
 
 
 
 
-  <link rel="canonical" href="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/">
+  <link rel="canonical" href="https://kevinleung611.github.io/2022/07/14/Spring启动流程/">
 
 
 
@@ -127,7 +133,7 @@
   };
 </script>
 
-  <title>你的单例真的是单例吗 | 善博的博客</title>
+  <title>Spring启动流程 | 善博的博客</title>
   
 
 
@@ -304,7 +310,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/">
+    <link itemprop="mainEntityOfPage" href="https://kevinleung611.github.io/2022/07/14/Spring启动流程/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="善博">
@@ -321,7 +327,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">你的单例真的是单例吗
+          <h1 class="post-title" itemprop="name headline">Spring启动流程
 
               
             
@@ -347,24 +353,12 @@
                 
               
 
-              <time title="创建时间：2019-08-04 00:00:00" itemprop="dateCreated datePublished" datetime="2019-08-04T00:00:00+08:00">2019-08-04</time>
+              <time title="创建时间：2022-07-14 00:00:00 / 修改时间：17:33:42" itemprop="dateCreated datePublished" datetime="2022-07-14T00:00:00+08:00">2022-07-14</time>
             
 
             
               
 
-              
-                
-                <span class="post-meta-divider">|</span>
-                
-
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">更新于</span>
-                
-                <time title="修改时间：2022-06-26 18:22:35" itemprop="dateModified" datetime="2022-06-26T18:22:35+08:00">2022-06-26</time>
               
             
           </span>
@@ -398,143 +392,66 @@
       
 
       
-        <p>对于单例，相信大家都不陌生。单例就是指类只有一个实例。什么情况下会用到单例呢？举个例子，环境类，另一种叫法是上下文，一般来说上下文是贯穿整个应用的，无论在应用的哪个位置获取上下文对象，都是一个上下文。</p>
-<p>单例的实现方式有多种，常见的有饿汉式、懒汉式和枚举。但是我这里想要说的不是怎么去实现单例模式，而是单例模式的一些细节问题。</p>
-<p>下面看饿汉式的单例模式：</p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-import java.io.Serializable;
-
-/**
- * @author Kevin Leung
- */
-public class HungrySingleton implements Serializable {
-
-    private static final long serialVersionUID = -8180761491879455465L;
-
-    private static final HungrySingleton SINGLETON = new HungrySingleton();
-
-    private HungrySingleton() {
-
-    }
-
-    public static HungrySingleton getInstance() {
-        return SINGLETON;
-    }
-
-}
-</code></pre>
-<p>这时饿汉式标准的实现方式。我们知道，每次 getInstance 的时候都会返回同一个实例。但是，需要注意的时候在实例反序列化式的情况，对象在反序列化的时候，默认的做法会重新构造一个对象。看下面的示例：</p>
-<pre><code class="java">private static void hungrySingleton() throws IOException, ClassNotFoundException {
-  HungrySingleton hungrySingleton = HungrySingleton.getInstance();
-
-  HungrySingleton hungrySingleton1 = HungrySingleton.getInstance();
-
-  System.out.println(hungrySingleton == hungrySingleton1);
-
-  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;hungrySingleton.data&quot;));
-
-  os.writeObject(hungrySingleton1);
-
-  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;hungrySingleton.data&quot;));
-
-  hungrySingleton1 = (HungrySingleton) is.readObject();
-
-  System.out.println(hungrySingleton == hungrySingleton1);
-}
-</code></pre>
-<p>程序执行的结果为：</p>
-<blockquote>
-<p>true</p>
-<p>false</p>
-</blockquote>
-<p>对象在反序列化的时候出乎了我们的意料，对象发生了变化，这不是我们想看到的结果。那么如何解决这个问题呢？</p>
-<p>有两种解决方案，一种是实现 readResolve 方法，另一种是通过枚举的方式实现单例。</p>
-<h3 id="解决方案一"><a href="#解决方案一" class="headerlink" title="解决方案一"></a>解决方案一</h3><p>看 ObjectOutputStream 的 readObject 方法，可以看出，如果实例方法中有 readResovle 方法，先调用 readResovle 方法，返回 readResovle 方法返回的实例。</p>
-<p><img src="/.io//image-20190804212035702.png" alt="image-20190804212035702"></p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-import java.io.Serializable;
-
-/**
- * @author Kevin Leung
- */
-public class HungrySingleton implements Serializable {
-
-    private static final long serialVersionUID = -8180761491879455465L;
-
-    private static final HungrySingleton SINGLETON = new HungrySingleton();
-
-    private HungrySingleton() {
-
-    }
-
-    public static HungrySingleton getInstance() {
-        return SINGLETON;
-    }
-
-    private Object readResolve() {
-        return SINGLETON;
-    }
-
-}
-</code></pre>
-<p>看加上 readResovle 方法后效果如何。</p>
-<blockquote>
-<p>true</p>
-<p>true</p>
-</blockquote>
-<h3 id="解决方案二"><a href="#解决方案二" class="headerlink" title="解决方案二"></a>解决方案二</h3><p>使用枚举的方式解决反序列化的问题。</p>
-<pre><code class="java">package com.kevinleung.demo.single;
-
-/**
- * @author Kevin Leung
- */
-public enum EnumSingleton {
-    /**
-     * 单例
-     */
-    INSTANCE;
-
-    private String field;
-
-    public void setField(String field) {
-        this.field = field;
-    }
-
-    public String getField() {
-        return field;
-    }
-
-}
-</code></pre>
-<pre><code class="java">private static void enumSingleton() throws IOException, ClassNotFoundException {
-  EnumSingleton enumSingleton = EnumSingleton.INSTANCE;
-
-  EnumSingleton enumSingleton1 = EnumSingleton.INSTANCE;
-
-  System.out.println(enumSingleton == enumSingleton1);
-
-  ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(&quot;enumSingleton.data&quot;));
-
-  os.writeObject(enumSingleton1);
-
-  ObjectInputStream is = new ObjectInputStream(new FileInputStream(&quot;enumSingleton.data&quot;));
-
-  enumSingleton1 = (EnumSingleton) is.readObject();
-
-  System.out.println(enumSingleton == enumSingleton1);
-}
-</code></pre>
-<p>输出结果为</p>
-<blockquote>
-<p>true</p>
-<p>true</p>
-</blockquote>
-<p>枚举之所以能够解决单例模式反序列化问题的原因是，反序列化的时候，枚举的实现方式和其他类型是不一样的。</p>
-<p>具体可看下面源码：</p>
-<p><img src="/.io//image-20190804214537510.png" alt="image-20190804214537510"></p>
-<p>在枚举反序列化的时候，调用了 Enum.valueOf 方法，这个方法会从枚举类中保存的 map 中获取枚举实例。也就是说，枚举在每次反序列化的时候，都会从公有的枚举 map 中获取对应 name 的实例。所以，每次反序列化后的都是同一个对象。</p>
+        <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>从代码层面了解Spring的启动流程。作者不会直接贴出代码让读者自己阅读，因为这样篇幅占比太大，而且可读性较差。作者会基于代码的理解总结一遍，将核心的知识点和功能点指出，具体的实现代码读者可以自行翻阅。</p>
+<p>Spring的启动流程核心在于ApplicationContext的scan，refresh和stop。作者将基于这三步展开描述Spring的启动流程。</p>
+<h2 id="核心步骤"><a href="#核心步骤" class="headerlink" title="核心步骤"></a>核心步骤</h2><h3 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h3><h3 id="refresh"><a href="#refresh" class="headerlink" title="refresh"></a>refresh</h3><h3 id="stop"><a href="#stop" class="headerlink" title="stop"></a>stop</h3><h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><h3 id="scan实现原理"><a href="#scan实现原理" class="headerlink" title="scan实现原理"></a>scan实现原理</h3><p>既然我们知道了scan的作用是找到定义的bean，那么spring是如何找到这些bean的呢？spring在这中间究竟做了哪些事情，接下来作者将揭开spring scan的神秘面纱，从源码层面开始分析scan的工作原理。</p>
+<p>作者将使用AnnotationConfigApplicationContext作为例子，开始剖析scan的过程，新建一个AnnotationConfigApplicationContext的实例，可以发现其提供了一个scan的方法，这个方法的实现实际上是由ClassPathBeanDefinitionScanner实现的，接着往下深挖，看看ClassPathBeanDefinitionScanner在scan的时候做了什么事情。下面是作者总结的scan主要实现流程。</p>
+<p><img src="/.io//image-20220706213218202.png" alt="image-20220706213218202" style="zoom:50%;"></p>
+<p>有几个关键点需要搞清楚的：</p>
+<ol>
+<li>ClassPathDefinitionScanner是如何找到候选组件的?</li>
+<li>候选组件信息需要初始化哪些信息</li>
+<li>候选组件信息是如何注册到beanFactory</li>
+</ol>
+<h4 id="ClassPathDefinitionScanner是如何找到候选组件的"><a href="#ClassPathDefinitionScanner是如何找到候选组件的" class="headerlink" title="ClassPathDefinitionScanner是如何找到候选组件的"></a>ClassPathDefinitionScanner是如何找到候选组件的</h4><p>spring会先确定使用哪种方式扫描组件，目前spring提供两种组件扫描的方式，一种是指定根目录扫描下面的定义的组件，另外一种是根据spring-components指定的静态索引文件扫描组件。后者的方式主要是为了解决bean定义太多导致应用启动缓慢的问题，后者这次先不谈，先来看看常用的通过扫描根目录下的组件的方式。</p>
+<p>扫描根目录下列的类定义由PathMatchingResourcePatternResolver完成，该类扫描组件的方式主要有两种，一种是类路径下扫描，另外一种是绝对路径扫描。扫描组件的方式主要是通过给定路径的前缀决定的，如果前缀是classpath:*的情况下，spring会在类路径下指定的basePackage找出所有的类转换成Resource实例，接着遍历每一个Resource实例，读取当前Resource对应的类文件解析成MetadataReader，再判断当前MetadataReader是否属于候选组件。判断当前MetadataReader是否属于候选组件的依据是includeFilter和excludeFilter，在用户没有自定义的情况下，spring提供默认的includeFilter，分别是三个AnnotationTypeFilter，使用Component定义组件的Filter，使用Named定义组件的filter还有使用ManagedBean定义组件的filter。</p>
+<p>从上面spring根据basePackage扫描组件的实现方式可以看出，如果在指定basePackage下的类过多的情况，通过IO加载类的方式会显得效率低下，而且加载出来的Resource使用一个数组的结构保存，当类的数量过多，数组的大小也会随着类的数量呈线性膨胀。所以spring推出了另外一个解决方案，就是通过索引的方式完成组件的扫描。</p>
+<p>下面是ClassPathDefinitionScan的寻找候选组件的流程图</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220706190237762.png" alt="image-20220706190237762" style="zoom:50%;"></p>
+<h4 id="候选组件初始化"><a href="#候选组件初始化" class="headerlink" title="候选组件初始化"></a>候选组件初始化</h4><ol>
+<li>Scope设置</li>
+<li>init方法名初始化</li>
+<li>destroy方法名初始化</li>
+</ol>
+<p>scope设置包括创建bean的方式，是singleton还是prototype</p>
+<p>init和destroy方法名设置默认为空，通过BeanDefinitionDefaults控制</p>
+<h4 id="注册候选组件到BeanFactory"><a href="#注册候选组件到BeanFactory" class="headerlink" title="注册候选组件到BeanFactory"></a>注册候选组件到BeanFactory</h4><p>在注册候选组件到BeanFactory之前，Scanner会检查当前需要注册的bean是否重复，如果重复会抛出ConflictingBeanDefinitionException。</p>
+<p>因为ClassPathBeanDefinitionScanner是通过给定的BeanDefinitionRegistry来决定如何注册到beanFactory的，因为这本例子作者使用的是AnnotationConfigApplicationContext，在初始化AnnotationConfigApplicationContext时，会将registry注入到scanner，而注入的registry实际上是GenericApplicationContext，GenericApplicationContext会调用DefaultListableBeanFactory的registryBeanDefinition方法完成注册。在这里面DefaultListableBeanFactory会先在自己的成员变量beanDefinitionMap检查是否已经包含了需要注册的bean，如果已经包含，会检查是否能覆盖(allowBeanDefinitionOverriding，默认是true)的配置，如果不能覆盖则会抛出异常。接下来，DefaultListableBeanFactory会将需要注册的bean维护到beanDefinitionMap的成员变量中。值得注意的是，维护到beanDefinitionMap的过程中，DefaultListableBeanFactory会加上synchronized关键字确保这段代码是线程安全的。</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220708114448199.png" alt="image-20220708114448199"></p>
+<h3 id="refresh的实现原理"><a href="#refresh的实现原理" class="headerlink" title="refresh的实现原理"></a>refresh的实现原理</h3><p>初看refresh的内部实现，你可能会觉得杂乱无章，非常的不清晰，但是实际上仔细分析的话，整个refresh还是围绕着一个主体展开的。这个主体就是BeanFactory。下面作者来总结一下refresh做了哪些事情，为什么需要refresh。</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712213528259.png" alt="image-20220712213528259" style="zoom:30%;"></p>
+<p>从上面的代码翻译过来，可以总结为以下几个步骤：</p>
+<ol>
+<li>获取BeanFactory</li>
+<li>填充BeanFactory基本信息</li>
+<li>执行PostProcessor</li>
+<li>注册特定bean</li>
+<li>BeanFactory初始化后置处理</li>
+<li>refresh后置处理</li>
+</ol>
+<h4 id="获取BeanFactory"><a href="#获取BeanFactory" class="headerlink" title="获取BeanFactory"></a>获取BeanFactory</h4><p>这是在实例化ApplicationContext的时候就已经觉得的，作者使用的AnnotationConfigApplicationContext，在实例化的时候，默认会实例化DefaultListableBeanFactory。</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214513768.png" alt="image-20220712214513768" style="zoom:50%;"></p>
+<p>因此这里获取到的BeanFactory也会是DefaultListableBeanFactory。</p>
+<h4 id="填充BeanFactory基本信息"><a href="#填充BeanFactory基本信息" class="headerlink" title="填充BeanFactory基本信息"></a>填充BeanFactory基本信息</h4><p>下面截取了一部分初始化BeanFactory的代码，可以简单了解下。</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220712214754344.png" alt="image-20220712214754344" style="zoom: 33%;"></p>
+<h4 id="执行PostProcessor"><a href="#执行PostProcessor" class="headerlink" title="执行PostProcessor"></a>执行PostProcessor</h4><p>这里会执行两类PostProcessor，一类是BeanDefinitionRegistryPostProcessor，一类是BeanFactoryPostProcessor。BeanDefinitionRegistryPostProcessor可以在BeanFactory初始化后，拿到BeanDefinitionRegistry操作BeanFactory，而BeanFactoryPostProcessor允许在BeanFactory初始化后直接拿到ConfigurableListableBeanFactory对其操作。</p>
+<p>对于这两个PostProcessor我的理解是，对BeanFactory的操作进行了读写分离，BeanDefinitionRegistry负责注册BeanDefinition，ConfigurableListableBeanFactory负责读BeanDefinition。因此BeanDefinitionRegistryPostProcessor的执行是在BeanFactoryPostProcessor之前的，这样可以保证使用BeanFactoryPostProcessor也可以读我们使用BeanDefinitionRegistryPostProcessor定义的bean。</p>
+<h4 id="注册特定的bean"><a href="#注册特定的bean" class="headerlink" title="注册特定的bean"></a>注册特定的bean</h4><p>这些特定的bean包括：BeanPostProcessor, MesasgeSource, ApplicationEventMulticaster, ApplicationListener。来简单了解一下这些bean是做什么的：</p>
+<p><em>BeanPostProcessor</em> Bean后置处理器，是Bean在完成实例之前或者之后的处理器</p>
+<p><em>MessageSource</em> 不知道干嘛的</p>
+<p><em>ApplicationEventMulticaster</em> 事件广播器，主要用于注册监听器和发布事件</p>
+<p><em>ApplicationListener</em> 应用监听器，注册用户自定义的监听器</p>
+<h4 id="BeanFactory初始化后置处理"><a href="#BeanFactory初始化后置处理" class="headerlink" title="BeanFactory初始化后置处理"></a>BeanFactory初始化后置处理</h4><p>可以看到这里的后置处理主要做了实例化单例的bean：</p>
+<p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714153722283.png" alt="image-20220714153722283" style="zoom:50%;"></p>
+<p>BeanFactory的实例化实际上是调用了AbstractBeanFactory的getBean方法完成的。getBean方法主要完成了两件事情：</p>
+<ol>
+<li>获取bean</li>
+<li>实例化bean</li>
+</ol>
+<h4 id="refresh后置处理"><a href="#refresh后置处理" class="headerlink" title="refresh后置处理"></a>refresh后置处理</h4><p><img src="/.io//kevinleung/Documents/HexoBlogs/kevinleung611.github.io/source/img/image-20220714155034426.png" alt="image-20220714155034426" style="zoom:50%;"></p>
+<p>这里的逻辑非常清晰明了，从上面的代码可以看出来，完成refresh的时候会委托LifecycleProcessor执行onRefresh方法，调用Lifecycle的start方法。下一步发布一个完成refresh的事件，由监听完成refresh事件（ContextRefreshedEvent）的监听器处理。</p>
+<h3 id="Stop的实现原理"><a href="#Stop的实现原理" class="headerlink" title="Stop的实现原理"></a>Stop的实现原理</h3><p>stop的流程就相对来说比较简单，主要有有两步，分别是委托LifecycleProcessor执行Lifecycle的stop方法；发布ContextStopedEvent事件</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>作者从基础的Spring启动过程开始分析，点出了Spring容器在启动的过程中的核心点，但是Spring容器在启动时做的事情远远不止这些，里面还有很多细节点需要去发掘探索，有兴趣的读者可以基于上述的步骤深入去研究一下。看看Spring做了哪些事情只是其中的一部分，这部分可能在日常开发中遇到问题，可以意识到问题所在，但是最核心的是你能从中学到什么，Spring为什么要这么设计，比如复杂UML设计好处体现在哪里等等。作者也会持续学习，尽力理解其中的精髓和思想。</p>
 
       
     </div>
@@ -573,7 +490,7 @@ public enum EnumSingleton {
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
     
-    <a href="https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/" title="你的单例真的是单例吗">https://kevinleung611.github.io/2019/08/04/你的单例真的是单例吗/</a>
+    <a href="https://kevinleung611.github.io/2022/07/14/Spring启动流程/" title="Spring启动流程">https://kevinleung611.github.io/2022/07/14/Spring启动流程/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
@@ -586,7 +503,9 @@ public enum EnumSingleton {
       
         <div class="post-tags">
           
-            <a href="/tags/单例模式/" rel="tag"># 单例模式</a>
+            <a href="/tags/Java/" rel="tag"># Java</a>
+          
+            <a href="/tags/Spring/" rel="tag"># Spring</a>
           
         </div>
       
@@ -599,8 +518,8 @@ public enum EnumSingleton {
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2019/03/10/使用markdown画流程图/" rel="next" title="使用markdown画流程图">
-                <i class="fa fa-chevron-left"></i> 使用markdown画流程图
+              <a href="/2022/06/26/切换Brew软件源/" rel="next" title="切换Brew软件源">
+                <i class="fa fa-chevron-left"></i> 切换Brew软件源
               </a>
             
           </div>
@@ -608,10 +527,6 @@ public enum EnumSingleton {
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2022/06/26/切换Brew软件源/" rel="prev" title="切换Brew软件源">
-                切换Brew软件源 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -778,7 +693,7 @@ public enum EnumSingleton {
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#解决方案一"><span class="nav-number">1.</span> <span class="nav-text">解决方案一</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#解决方案二"><span class="nav-number">2.</span> <span class="nav-text">解决方案二</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#核心步骤"><span class="nav-number">2.</span> <span class="nav-text">核心步骤</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#scan"><span class="nav-number">2.1.</span> <span class="nav-text">scan</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#refresh"><span class="nav-number">2.2.</span> <span class="nav-text">refresh</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#stop"><span class="nav-number">2.3.</span> <span class="nav-text">stop</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实现原理"><span class="nav-number">3.</span> <span class="nav-text">实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#scan实现原理"><span class="nav-number">3.1.</span> <span class="nav-text">scan实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ClassPathDefinitionScanner是如何找到候选组件的"><span class="nav-number">3.1.1.</span> <span class="nav-text">ClassPathDefinitionScanner是如何找到候选组件的</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#候选组件初始化"><span class="nav-number">3.1.2.</span> <span class="nav-text">候选组件初始化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#注册候选组件到BeanFactory"><span class="nav-number">3.1.3.</span> <span class="nav-text">注册候选组件到BeanFactory</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#refresh的实现原理"><span class="nav-number">3.2.</span> <span class="nav-text">refresh的实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#获取BeanFactory"><span class="nav-number">3.2.1.</span> <span class="nav-text">获取BeanFactory</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#填充BeanFactory基本信息"><span class="nav-number">3.2.2.</span> <span class="nav-text">填充BeanFactory基本信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#执行PostProcessor"><span class="nav-number">3.2.3.</span> <span class="nav-text">执行PostProcessor</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#注册特定的bean"><span class="nav-number">3.2.4.</span> <span class="nav-text">注册特定的bean</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#BeanFactory初始化后置处理"><span class="nav-number">3.2.5.</span> <span class="nav-text">BeanFactory初始化后置处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#refresh后置处理"><span class="nav-number">3.2.6.</span> <span class="nav-text">refresh后置处理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Stop的实现原理"><span class="nav-number">3.3.</span> <span class="nav-text">Stop的实现原理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
             
 
           </div>
